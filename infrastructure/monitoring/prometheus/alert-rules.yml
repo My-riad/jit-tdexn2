@@ -1,0 +1,213 @@
+groups:
+  - name: service-availability
+    description: Alerts for service availability across the platform
+    rules:
+    - alert: ServiceDown
+      expr: sum(up{job=~".+-service"}) by (job) < 1
+      for: 1m
+      labels:
+        severity: critical
+        category: availability
+      annotations:
+        summary: Service {{ $labels.job }} is down
+        description: Service {{ $labels.job }} has been down for more than 1 minute
+        impact: Service unavailable, affecting platform functionality
+        action: Check service logs, pod status, and infrastructure
+
+    - alert: MultipleServicesDown
+      expr: count(sum(up{job=~".+-service"}) by (job) < 1) > 1
+      for: 1m
+      labels:
+        severity: critical
+        category: availability
+        team: platform
+      annotations:
+        summary: Multiple services down
+        description: {{ $value }} services have been down for more than 1 minute
+        impact: Major platform disruption affecting multiple functions
+        action: Initiate incident response procedure and check infrastructure health
+
+    - alert: ServiceHighUnavailability
+      expr: sum(kube_deployment_status_replicas_available{deployment=~".+-service"}) by (deployment) / sum(kube_deployment_status_replicas{deployment=~".+-service"}) by (deployment) < 0.7
+      for: 5m
+      labels:
+        severity: critical
+        category: availability
+      annotations:
+        summary: Service {{ $labels.deployment }} high unavailability
+        description: Less than 70% of {{ $labels.deployment }} replicas are available for more than 5 minutes
+        impact: Reduced capacity and potential service degradation
+        action: Check pod status, logs, and deployment events
+
+  - name: service-performance
+    description: Alerts for service performance across the platform
+    rules:
+    - alert: ServiceHighResponseTime
+      expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~".+-service"}[5m])) by (le, job)) > 0.5
+      for: 5m
+      labels:
+        severity: warning
+        category: performance
+      annotations:
+        summary: Service {{ $labels.job }} high response time
+        description: 95th percentile response time for {{ $labels.job }} is above 500ms for more than 5 minutes
+        impact: Degraded user experience and potential SLA violations
+        action: Check service performance, database queries, and resource utilization
+
+    - alert: ServiceCriticalResponseTime
+      expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~".+-service"}[5m])) by (le, job)) > 1
+      for: 5m
+      labels:
+        severity: critical
+        category: performance
+      annotations:
+        summary: Service {{ $labels.job }} critical response time
+        description: 95th percentile response time for {{ $labels.job }} is above 1s for more than 5 minutes
+        impact: Severe performance degradation affecting user experience
+        action: Immediate investigation required, check service logs and dependencies
+
+    - alert: ServiceHighErrorRate
+      expr: sum(rate(http_requests_total{job=~".+-service", status=~"5.."}[5m])) by (job) / sum(rate(http_requests_total{job=~".+-service"}[5m])) by (job) > 0.01
+      for: 5m
+      labels:
+        severity: warning
+        category: errors
+      annotations:
+        summary: Service {{ $labels.job }} high error rate
+        description: Error rate for {{ $labels.job }} is above 1% for more than 5 minutes
+        impact: Service experiencing errors, affecting user experience
+        action: Check service logs and dependent service status
+
+  - name: business-metrics
+    description: Alerts for business metrics and KPIs
+    rules:
+    - alert: LowLoadMatchRate
+      expr: sum(rate(load_match_operations_total{status="success"}[30m])) / sum(rate(load_match_operations_total[30m])) < 0.8
+      for: 30m
+      labels:
+        severity: warning
+        category: business
+        team: operations
+      annotations:
+        summary: Low load match rate
+        description: Successful load match rate is below 80% for more than 30 minutes
+        impact: Reduced efficiency in load matching affecting network optimization
+        action: Check match quality metrics and optimization parameters
+
+    - alert: LowLoadAcceptanceRate
+      expr: sum(rate(load_match_acceptance_total{status="accepted"}[1h])) / sum(rate(load_match_acceptance_total[1h])) < 0.4
+      for: 1h
+      labels:
+        severity: warning
+        category: business
+        team: operations
+      annotations:
+        summary: Low load acceptance rate
+        description: Load acceptance rate is below 40% for more than 1 hour
+        impact: Drivers rejecting recommended loads, reducing network efficiency
+        action: Review recommendation quality and driver feedback
+
+    - alert: HighEmptyMilePercentage
+      expr: avg(driver_empty_miles_percentage) > 20
+      for: 1d
+      labels:
+        severity: warning
+        category: business
+        team: operations
+      annotations:
+        summary: High empty mile percentage
+        description: Average empty mile percentage is above 20% for more than 1 day
+        impact: Network efficiency below target, affecting cost savings and emissions
+        action: Review optimization algorithms and network coverage
+
+    - alert: LowDriverEarningsGrowth
+      expr: avg(driver_earnings_growth_percentage) < 10
+      for: 7d
+      labels:
+        severity: warning
+        category: business
+        team: operations
+      annotations:
+        summary: Low driver earnings growth
+        description: Average driver earnings growth is below 10% for more than 7 days
+        impact: Driver value proposition below target, affecting retention
+        action: Review pricing strategy and load distribution algorithms
+
+  - name: resource-utilization
+    description: Alerts for resource utilization across services
+    rules:
+    - alert: ServiceHighCPUUsage
+      expr: sum(rate(container_cpu_usage_seconds_total{pod=~".+-service-.*"}[5m])) by (pod) / sum(kube_pod_container_resource_limits{pod=~".+-service-.*", resource="cpu"}) by (pod) > 0.7
+      for: 15m
+      labels:
+        severity: warning
+        category: resources
+      annotations:
+        summary: Service high CPU usage
+        description: Pod {{ $labels.pod }} is using more than 70% of its CPU limit for more than 15 minutes
+        impact: Risk of performance degradation if usage continues to increase
+        action: Check service load and consider scaling if necessary
+
+    - alert: ServiceHighMemoryUsage
+      expr: sum(container_memory_working_set_bytes{pod=~".+-service-.*"}) by (pod) / sum(kube_pod_container_resource_limits{pod=~".+-service-.*", resource="memory"}) by (pod) > 0.7
+      for: 15m
+      labels:
+        severity: warning
+        category: resources
+      annotations:
+        summary: Service high memory usage
+        description: Pod {{ $labels.pod }} is using more than 70% of its memory limit for more than 15 minutes
+        impact: Risk of OOM kills if usage continues to increase
+        action: Check memory usage patterns and consider scaling if necessary
+
+    - alert: ServiceCriticalCPUUsage
+      expr: sum(rate(container_cpu_usage_seconds_total{pod=~".+-service-.*"}[5m])) by (pod) / sum(kube_pod_container_resource_limits{pod=~".+-service-.*", resource="cpu"}) by (pod) > 0.9
+      for: 5m
+      labels:
+        severity: critical
+        category: resources
+      annotations:
+        summary: Service critical CPU usage
+        description: Pod {{ $labels.pod }} is using more than 90% of its CPU limit for more than 5 minutes
+        impact: Severe performance degradation and potential throttling
+        action: Immediate scaling required or investigate high CPU usage cause
+
+  - name: dependency-health
+    description: Alerts for dependency health across services
+    rules:
+    - alert: ServiceCircuitBreakerOpen
+      expr: circuit_breaker_state{state="open"} > 0
+      for: 1m
+      labels:
+        severity: warning
+        category: dependencies
+      annotations:
+        summary: Service circuit breaker open
+        description: Circuit breaker for service {{ $labels.service }} is in open state for more than 1 minute
+        impact: Requests to {{ $labels.service }} are failing fast, affecting functionality
+        action: Check the health of the {{ $labels.service }} and its dependencies
+
+    - alert: MultipleCircuitBreakersOpen
+      expr: sum(circuit_breaker_state{state="open"}) > 2
+      for: 1m
+      labels:
+        severity: critical
+        category: dependencies
+        team: platform
+      annotations:
+        summary: Multiple circuit breakers open
+        description: More than 2 circuit breakers are in open state for more than 1 minute
+        impact: Multiple services are failing, severely affecting platform functionality
+        action: Initiate incident response procedure and check backend services
+
+    - alert: ServiceDependencyUnavailable
+      expr: sum(service_dependency_availability{available="false"}) by (service, dependency) > 0
+      for: 5m
+      labels:
+        severity: critical
+        category: dependencies
+      annotations:
+        summary: Service dependency unavailable
+        description: Dependency {{ $labels.dependency }} for service {{ $labels.service }} has been unavailable for more than 5 minutes
+        impact: Functionality dependent on {{ $labels.dependency }} is unavailable
+        action: Check the health and logs of {{ $labels.dependency }}
