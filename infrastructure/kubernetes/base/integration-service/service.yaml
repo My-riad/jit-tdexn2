@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: integration-service
+  namespace: default
+  labels:
+    app: integration-service
+    component: integration
+    part-of: freight-optimization
+  annotations:
+    description: "Service for the Integration Service component that manages connections with external systems"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3001"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3001
+      protocol: TCP
+    - name: webhook
+      port: 3005
+      targetPort: 3005
+      protocol: TCP
+  selector:
+    app: integration-service
+  sessionAffinity: None
