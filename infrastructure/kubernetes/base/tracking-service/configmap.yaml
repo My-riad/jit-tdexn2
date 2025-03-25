@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tracking-service-config
+  namespace: default
+  labels:
+    app: tracking-service
+    component: tracking-service
+    part-of: freight-optimization
+  annotations:
+    description: "Configuration for the Tracking Service of the AI-driven Freight Optimization Platform"
+data:
+  # Basic service configuration
+  PORT: "3006"
+  LOG_LEVEL: "info"
+  
+  # WebSocket configuration
+  WEBSOCKET_ENABLED: "true"
+  WEBSOCKET_PATH: "/tracking"
+  
+  # Event topics
+  POSITION_TOPIC: "position-updates"
+  GEOFENCE_TOPIC: "geofence-events"
+  CONSUMER_GROUP_ID: "tracking-service-group"
+  
+  # Position tracking configuration
+  POSITION_CACHE_TTL: "300"
+  POSITION_CACHE_PREFIX: "position:cache:"
+  POSITION_HISTORY_RETENTION_DAYS: "90"
+  POSITION_DOWNSAMPLING_ENABLED: "true"
+  POSITION_DOWNSAMPLING_THRESHOLD: "25"
+  SIGNIFICANT_MOVEMENT_THRESHOLD: "25"
+  
+  # Geofence configuration
+  GEOFENCE_CHECK_ENABLED: "true"
+  GEOFENCE_CACHE_TTL: "300"
+  GEOFENCE_CACHE_PREFIX: "geofence:cache:"
+  
+  # ETA calculation configuration
+  ETA_CALCULATION_ENABLED: "true"
+  ETA_CACHE_TTL: "300"
+  ETA_CACHE_PREFIX: "eta:cache:"
+  ETA_UPDATE_THRESHOLD_MINUTES: "5"
+  ETA_DEFAULT_CONFIDENCE_THRESHOLD: "0.7"
+  
+  # Data store connections
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  TIMESCALEDB_HOST: "timescaledb"
+  TIMESCALEDB_PORT: "5432"
+  TIMESCALEDB_DATABASE: "tracking_service"
+  KAFKA_BROKERS: "kafka:9092"
