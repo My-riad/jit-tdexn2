@@ -1,0 +1,279 @@
+name: Driver App CD
+
+on:
+  workflow_dispatch:  # Manual trigger
+  push:
+    branches:
+      - develop  # Development environment
+      - staging  # Staging environment
+      - main     # Production environment
+    tags:
+      - v*       # Production environment for version tags
+    paths:
+      - src/web/driver-app/**    # Only run when driver app files change
+      - .github/workflows/driver-app-cd.yml  # Or when this workflow changes
+
+env:
+  NODE_VERSION: '18.x'
+  JAVA_VERSION: '11'
+  RUBY_VERSION: '3.0'
+  WORKING_DIRECTORY: 'src/web/driver-app'
+
+jobs:
+  determine-environment:
+    name: Determine Environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      version_name: ${{ steps.set-version.outputs.version_name }}
+      version_code: ${{ steps.set-version.outputs.version_code }}
+      build_number: ${{ steps.set-version.outputs.build_number }}
+      api_url: ${{ steps.set-config.outputs.api_url }}
+      app_center_group: ${{ steps.set-config.outputs.app_center_group }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Determine environment
+        id: set-env
+        run: |
+          echo "environment=$(if [[ $GITHUB_REF == refs/heads/develop ]]; then echo dev; elif [[ $GITHUB_REF == refs/heads/staging ]]; then echo staging; elif [[ $GITHUB_REF == refs/heads/main ]] || [[ $GITHUB_REF == refs/tags/v* ]]; then echo prod; else echo dev; fi)" >> $GITHUB_OUTPUT
+      
+      - name: Set version information
+        id: set-version
+        run: |
+          VERSION_NAME=$(node -p "require('./package.json').version")
+          VERSION_CODE=$(date +%Y%m%d%H)
+          BUILD_NUMBER=$(date +%Y%m%d%H)
+          
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+      
+      - name: Set environment-specific configuration
+        id: set-config
+        run: |
+          if [[ "${{ steps.set-env.outputs.environment }}" == "dev" ]]; then
+            echo "api_url=https://api-dev.freightoptimization.com" >> $GITHUB_OUTPUT
+            echo "app_center_group=Developers" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.set-env.outputs.environment }}" == "staging" ]]; then
+            echo "api_url=https://api-staging.freightoptimization.com" >> $GITHUB_OUTPUT
+            echo "app_center_group=Testers" >> $GITHUB_OUTPUT
+          else
+            echo "api_url=https://api.freightoptimization.com" >> $GITHUB_OUTPUT
+            echo "app_center_group=Production" >> $GITHUB_OUTPUT
+          fi
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: [determine-environment]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+      
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+      
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.WORKING_DIRECTORY }}/android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: ${{ runner.os }}-gradle-
+      
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+      
+      - name: Create .env file
+        run: |
+          echo "API_URL=${{ needs.determine-environment.outputs.api_url }}" > .env.${{ needs.determine-environment.outputs.environment }}
+          echo "ENVIRONMENT=${{ needs.determine-environment.outputs.environment }}" >> .env.${{ needs.determine-environment.outputs.environment }}
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+      
+      - name: Setup Android keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/freight-optimization.keystore
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+      
+      - name: Update version in build.gradle
+        run: |
+          sed -i "s/versionCode [0-9]*/versionCode ${{ needs.determine-environment.outputs.version_code }}/g" android/app/build.gradle
+          sed -i "s/versionName \"[0-9]*\.[0-9]*\.[0-9]*\"/versionName \"${{ needs.determine-environment.outputs.version_name }}\"/g" android/app/build.gradle
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+      
+      - name: Build Android Release
+        run: |
+          cd android && ./gradlew assembleRelease -PversionCode=${{ needs.determine-environment.outputs.version_code }} -PversionName=${{ needs.determine-environment.outputs.version_name }} --no-daemon
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-release-apk
+          path: ${{ env.WORKING_DIRECTORY }}/android/app/build/outputs/apk/release/*.apk
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    needs: [determine-environment]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+      
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+      
+      - name: Cache CocoaPods
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.WORKING_DIRECTORY }}/ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
+          restore-keys: ${{ runner.os }}-pods-
+      
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+      
+      - name: Install CocoaPods
+        run: cd ios && pod install
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+      
+      - name: Create .env file
+        run: |
+          echo "API_URL=${{ needs.determine-environment.outputs.api_url }}" > .env.${{ needs.determine-environment.outputs.environment }}
+          echo "ENVIRONMENT=${{ needs.determine-environment.outputs.environment }}" >> .env.${{ needs.determine-environment.outputs.environment }}
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+      
+      - name: Setup iOS certificates
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          echo "${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}" | base64 -d > certificate.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -A
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
+      
+      - name: Update version in Info.plist
+        run: |
+          plutil -replace CFBundleShortVersionString -string ${{ needs.determine-environment.outputs.version_name }} ios/FreightOptimization/Info.plist
+          plutil -replace CFBundleVersion -string ${{ needs.determine-environment.outputs.build_number }} ios/FreightOptimization/Info.plist
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+      
+      - name: Build iOS app
+        run: |
+          cd ios && xcodebuild -workspace FreightOptimization.xcworkspace -scheme FreightOptimization -configuration Release -archivePath ./build/FreightOptimization.xcarchive archive -allowProvisioningUpdates CODE_SIGN_IDENTITY="${{ secrets.IOS_CERTIFICATE_NAME }}" PROVISIONING_PROFILE="profile.mobileprovision"
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+      
+      - name: Export IPA
+        run: |
+          cd ios && xcodebuild -exportArchive -archivePath ./build/FreightOptimization.xcarchive -exportPath ./build/ipa -exportOptionsPlist ../exportOptions.plist
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+      
+      - name: Upload IPA
+        uses: actions/upload-artifact@v3
+        with:
+          name: ios-release-ipa
+          path: ${{ env.WORKING_DIRECTORY }}/ios/build/ipa/*.ipa
+
+  deploy-android:
+    name: Deploy Android
+    runs-on: ubuntu-latest
+    needs: [determine-environment, build-android]
+    environment: ${{ needs.determine-environment.outputs.environment }}
+    
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v3
+        with:
+          name: android-release-apk
+          path: apk
+      
+      - name: Deploy to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1.5.0
+        if: needs.determine-environment.outputs.environment != 'prod'
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID_ANDROID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: ${{ needs.determine-environment.outputs.app_center_group }}
+          releaseNotes: "Build ${{ needs.determine-environment.outputs.version_name }} (${{ needs.determine-environment.outputs.version_code }}) for ${{ needs.determine-environment.outputs.environment }} environment"
+          file: apk/app-release.apk
+      
+      - name: Deploy to Google Play
+        if: needs.determine-environment.outputs.environment == 'prod'
+        run: |
+          echo "Deploying to Google Play Store - implementation would use Fastlane or Google Play API"
+
+  deploy-ios:
+    name: Deploy iOS
+    runs-on: macos-latest
+    needs: [determine-environment, build-ios]
+    environment: ${{ needs.determine-environment.outputs.environment }}
+    
+    steps:
+      - name: Download IPA
+        uses: actions/download-artifact@v3
+        with:
+          name: ios-release-ipa
+          path: ipa
+      
+      - name: Deploy to TestFlight
+        uses: apple-actions/upload-testflight@v1
+        with:
+          app-path: ipa/FreightOptimization.ipa
+          apple-id: ${{ secrets.APPLE_ID }}
+          app-specific-password: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          team-id: ${{ secrets.APPLE_TEAM_ID }}
+
+  notify-deployment:
+    name: Send Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [deploy-android, deploy-ios, determine-environment]
+    if: always()
+    
+    steps:
+      - name: Determine deployment status
+        id: status
+        run: |
+          echo "status=$(if [[ ${{ contains(needs.*.result, 'failure') }} == true ]]; then echo failure; else echo success; fi)" >> $GITHUB_OUTPUT
+      
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          slack-message: |
+            Driver App deployment to ${{ needs.determine-environment.outputs.environment }} environment: ${{ steps.status.outputs.status == 'success' && '✅ Success' || '❌ Failed' }}
+            Version: ${{ needs.determine-environment.outputs.version_name }} (Build: ${{ needs.determine-environment.outputs.version_code }})
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
