@@ -1,0 +1,551 @@
+version: '3.8'
+
+services:
+  # Database and Storage Services
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      POSTGRES_USER: ${TIMESCALE_USER}
+      POSTGRES_PASSWORD: ${TIMESCALE_PASSWORD}
+      POSTGRES_DB: ${TIMESCALE_DB}
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TIMESCALE_USER} -d ${TIMESCALE_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:6-jammy
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend Microservices
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api-gateway/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
+      BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS}
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./auth-service/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+  driver-service:
+    build:
+      context: ./driver-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3002
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      KEEPTRUCKIN_API_KEY: ${KEEPTRUCKIN_API_KEY}
+      KEEPTRUCKIN_CLIENT_ID: ${KEEPTRUCKIN_CLIENT_ID}
+      KEEPTRUCKIN_CLIENT_SECRET: ${KEEPTRUCKIN_CLIENT_SECRET}
+      OMNITRACS_API_KEY: ${OMNITRACS_API_KEY}
+      SAMSARA_API_KEY: ${SAMSARA_API_KEY}
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./driver-service/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+  load-service:
+    build:
+      context: ./load-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3003
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      S3_BUCKET_DOCUMENTS: ${S3_BUCKET_DOCUMENTS}
+      AWS_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./load-service/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+  load-matching-service:
+    build:
+      context: ./load-matching-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - optimization-engine
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3004
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      OPTIMIZATION_ENGINE_URL: http://optimization-engine:3008
+    ports:
+      - "3004:3004"
+    volumes:
+      - ./load-matching-service/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+  tracking-service:
+    build:
+      context: ./tracking-service
+      dockerfile: Dockerfile
+    depends_on:
+      - timescaledb
+      - redis
+      - kafka
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3005
+      TIMESCALE_HOST: timescaledb
+      TIMESCALE_PORT: 5432
+      TIMESCALE_DB: ${TIMESCALE_DB}
+      TIMESCALE_USER: ${TIMESCALE_USER}
+      TIMESCALE_PASSWORD: ${TIMESCALE_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+    ports:
+      - "3005:3005"
+    volumes:
+      - ./tracking-service/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+  gamification-service:
+    build:
+      context: ./gamification-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3006
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+    ports:
+      - "3006:3006"
+    volumes:
+      - ./gamification-service/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+  market-intelligence-service:
+    build:
+      context: ./market-intelligence-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - timescaledb
+      - redis
+      - kafka
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3007
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      TIMESCALE_HOST: timescaledb
+      TIMESCALE_PORT: 5432
+      TIMESCALE_DB: ${TIMESCALE_DB}
+      TIMESCALE_USER: ${TIMESCALE_USER}
+      TIMESCALE_PASSWORD: ${TIMESCALE_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3007:3007"
+    volumes:
+      - ./market-intelligence-service/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+  optimization-engine:
+    build:
+      context: ./optimization-engine
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - timescaledb
+      - redis
+      - kafka
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3008
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      TIMESCALE_HOST: timescaledb
+      TIMESCALE_PORT: 5432
+      TIMESCALE_DB: ${TIMESCALE_DB}
+      TIMESCALE_USER: ${TIMESCALE_USER}
+      TIMESCALE_PASSWORD: ${TIMESCALE_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      USE_SAGEMAKER: ${USE_SAGEMAKER}
+      SAGEMAKER_REGION: ${SAGEMAKER_REGION}
+      SAGEMAKER_ENDPOINT_PREFIX: ${SAGEMAKER_ENDPOINT_PREFIX}
+      LOCAL_MODEL_PATH: ${LOCAL_MODEL_PATH}
+      AWS_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    ports:
+      - "3008:3008"
+    volumes:
+      - ./optimization-engine/src:/app/src
+      - ./common:/app/common
+      - ./optimization-engine/models:/app/models
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3009
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      SENDGRID_FROM_EMAIL: ${SENDGRID_FROM_EMAIL}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      ENABLE_EMAIL_NOTIFICATIONS: ${ENABLE_EMAIL_NOTIFICATIONS}
+      ENABLE_SMS_NOTIFICATIONS: ${ENABLE_SMS_NOTIFICATIONS}
+      ENABLE_PUSH_NOTIFICATIONS: ${ENABLE_PUSH_NOTIFICATIONS}
+    ports:
+      - "3009:3009"
+    volumes:
+      - ./notification-service/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+  integration-service:
+    build:
+      context: ./integration-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3010
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+      MAPBOX_API_KEY: ${MAPBOX_API_KEY}
+      KEEPTRUCKIN_API_KEY: ${KEEPTRUCKIN_API_KEY}
+      KEEPTRUCKIN_CLIENT_ID: ${KEEPTRUCKIN_CLIENT_ID}
+      KEEPTRUCKIN_CLIENT_SECRET: ${KEEPTRUCKIN_CLIENT_SECRET}
+      OMNITRACS_API_KEY: ${OMNITRACS_API_KEY}
+      SAMSARA_API_KEY: ${SAMSARA_API_KEY}
+      MCLEOD_API_KEY: ${MCLEOD_API_KEY}
+      MCLEOD_API_URL: ${MCLEOD_API_URL}
+      TMW_API_KEY: ${TMW_API_KEY}
+      TMW_API_URL: ${TMW_API_URL}
+      MERCURYGATE_API_KEY: ${MERCURYGATE_API_KEY}
+      MERCURYGATE_API_URL: ${MERCURYGATE_API_URL}
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+    ports:
+      - "3010:3010"
+    volumes:
+      - ./integration-service/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+  data-service:
+    build:
+      context: ./data-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - timescaledb
+      - redis
+      - kafka
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3011
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      TIMESCALE_HOST: timescaledb
+      TIMESCALE_PORT: 5432
+      TIMESCALE_DB: ${TIMESCALE_DB}
+      TIMESCALE_USER: ${TIMESCALE_USER}
+      TIMESCALE_PASSWORD: ${TIMESCALE_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      S3_BUCKET_EXPORTS: ${S3_BUCKET_EXPORTS}
+      AWS_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    ports:
+      - "3011:3011"
+    volumes:
+      - ./data-service/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+  event-bus:
+    build:
+      context: ./event-bus
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3012
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID}
+      KAFKA_DEFAULT_PARTITIONS: ${KAFKA_DEFAULT_PARTITIONS}
+      KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_DEFAULT_REPLICATION_FACTOR}
+    ports:
+      - "3012:3012"
+    volumes:
+      - ./event-bus/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+  cache-service:
+    build:
+      context: ./cache-service
+      dockerfile: Dockerfile
+    depends_on:
+      - redis
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3013
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB}
+      REDIS_TLS: ${REDIS_TLS}
+      REDIS_CONNECT_TIMEOUT: ${REDIS_CONNECT_TIMEOUT}
+    ports:
+      - "3013:3013"
+    volumes:
+      - ./cache-service/src:/app/src
+      - ./common:/app/common
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  timescaledb_data:
+  redis_data:
+  mongodb_data:
+  zookeeper_data:
+  kafka_data:
+
+networks:
+  freight_network:
+    driver: bridge
