@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: integration-service-config
+  namespace: default
+  labels:
+    app: integration-service
+    component: integration
+    part-of: freight-optimization
+  annotations:
+    description: "Configuration for the Integration Service of the AI-driven Freight Optimization Platform"
+data:
+  NODE_ENV: "production"
+  PORT: "3001"
+  SERVICE_NAME: "integration-service"
+  WEBHOOK_PORT: "3005"
+  LOG_LEVEL: "info"
+  ELD_INTEGRATION_ENABLED: "true"
+  TMS_INTEGRATION_ENABLED: "true"
+  PAYMENT_INTEGRATION_ENABLED: "true"
+  MAPPING_INTEGRATION_ENABLED: "true"
+  WEATHER_INTEGRATION_ENABLED: "true"
+  KAFKA_BROKER_URLS: "kafka:9092"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  DATABASE_HOST: "postgres"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "integration_service"
+  KEEPTRUCKIN_API_ENDPOINT: "https://api.keeptruckin.com/v1"
+  OMNITRACS_API_ENDPOINT: "https://api.omnitracs.com/v1"
+  SAMSARA_API_ENDPOINT: "https://api.samsara.com/v1"
+  MCLEOD_API_ENDPOINT: "https://api.mcleod.com/v1"
+  TMW_API_ENDPOINT: "https://api.tmw.com/v1"
+  MERCURYGATE_API_ENDPOINT: "https://api.mercurygate.com/v1"
+  GOOGLE_MAPS_API_ENDPOINT: "https://maps.googleapis.com/maps/api"
+  MAPBOX_API_ENDPOINT: "https://api.mapbox.com"
+  STRIPE_API_ENDPOINT: "https://api.stripe.com/v1"
+  PLAID_API_ENDPOINT: "https://api.plaid.com/v1"
+  WEATHER_API_ENDPOINT: "https://api.openweathermap.org/data/2.5"
+  WEATHERCOM_API_ENDPOINT: "https://api.weather.com"
+  WEBHOOK_PATH_PREFIX: "/webhooks"
+  WEBHOOK_SIGNATURE_VALIDATION: "true"
+  WEBHOOK_BASE_URL: "https://api.freightoptimization.com/webhooks"
+  OAUTH_CALLBACK_BASE_URL: "https://api.freightoptimization.com/oauth/callback"
+  ELD_SYNC_INTERVAL_MINUTES: "15"
+  TMS_SYNC_INTERVAL_MINUTES: "30"
+  WEATHER_SYNC_INTERVAL_MINUTES: "60"
+  CORS_ORIGIN: "*"
+  BODY_LIMIT: "1mb"
+  REQUEST_TIMEOUT_MS: "30000"
+  RATE_LIMIT_MAX: "100"
+  RATE_LIMIT_WINDOW_MS: "60000"
