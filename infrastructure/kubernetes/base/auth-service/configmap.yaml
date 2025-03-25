@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+  namespace: default
+  labels:
+    app: auth-service
+    component: auth-service
+    part-of: freight-optimization
+  annotations:
+    description: "Configuration for the Authentication Service"
+    last-updated: "2023-09-25"
+data:
+  # JWT token configuration
+  JWT_ACCESS_EXPIRATION: "900"               # 15 minutes in seconds
+  JWT_REFRESH_EXPIRATION: "604800"           # 7 days in seconds
+  JWT_ISSUER: "freight-optimization-platform"
+  JWT_AUDIENCE: "freight-optimization-users"
+  
+  # Authentication policies
+  ENABLE_MFA: "false"                        # Multi-factor authentication toggle
+  SESSION_TIMEOUT: "900"                     # 15 minutes in seconds
+  MAX_LOGIN_ATTEMPTS: "5"                    # Number of failed attempts before lockout
+  LOCKOUT_TIME: "900"                        # 15 minutes in seconds
+  MAX_CONCURRENT_SESSIONS: "5"               # Maximum number of active sessions per user
+  TOKEN_REFRESH_ALLOWED: "true"              # Whether token refresh is allowed
+  
+  # Password policies
+  PASSWORD_SALT_ROUNDS: "12"                 # Number of bcrypt salt rounds
+  PASSWORD_MIN_LENGTH: "12"                  # Minimum password length
+  PASSWORD_REQUIRE_UPPERCASE: "true"         # Require uppercase characters
+  PASSWORD_REQUIRE_LOWERCASE: "true"         # Require lowercase characters
+  PASSWORD_REQUIRE_NUMBER: "true"            # Require numeric characters
+  PASSWORD_REQUIRE_SYMBOL: "true"            # Require special characters
+  PASSWORD_HISTORY_SIZE: "12"                # Number of previous passwords to check
+  PASSWORD_EXPIRY_DAYS: "90"                 # Password expiration in days
+  PASSWORD_RESET_EXPIRATION: "86400"         # Password reset token validity (24 hours)
+  
+  # Database connections
+  DB_HOST: "postgres"                        # PostgreSQL hostname
+  DB_PORT: "5432"                            # PostgreSQL port
+  DB_NAME: "auth_service"                    # Database name
+  REDIS_HOST: "redis"                        # Redis hostname
+  REDIS_PORT: "6379"                         # Redis port
+  
+  # Email verification
+  EMAIL_VERIFICATION_EXPIRATION: "604800"    # Email verification token validity (7 days)
+  
+  # CORS and security
+  CORS_ORIGIN: "https://freight-optimization.com,https://api.freight-optimization.com"
+  API_RATE_LIMIT_MAX: "100"                  # Maximum requests per window
+  API_RATE_LIMIT_WINDOW_MS: "60000"          # Rate limit window in milliseconds (1 minute)
+  
+  # Logging
+  LOG_LEVEL: "info"                          # Logging level (debug, info, warn, error)
+  
+  # OAuth settings
+  OAUTH_GOOGLE_ENABLED: "true"               # Enable Google OAuth
+  OAUTH_MICROSOFT_ENABLED: "true"            # Enable Microsoft OAuth
+  OAUTH_REDIRECT_URI: "https://api.freight-optimization.com/api/v1/auth/oauth/callback"
