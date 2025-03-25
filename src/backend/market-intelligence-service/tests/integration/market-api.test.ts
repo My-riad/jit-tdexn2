@@ -1,0 +1,1 @@
+# src/backend/market-intelligence-service/tests/integration/market-api.test.ts
