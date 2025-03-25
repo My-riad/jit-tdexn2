@@ -1,0 +1,110 @@
+node_modules/
+*/node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+*/dist/
+build/
+*/build/
+coverage/
+*/coverage/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+
+# Log files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+.nyc_output/
+.jest/
+__snapshots__/
+
+# Cache directories
+.npm
+.eslintcache
+.stylelintcache
+.prettiercache
+.cache/
+.rts2_cache_*/
+.rpt2_cache_*/
+.webpack/
+.babel-cache/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# IDE and editor files
+.idea/
+.vscode/
+*.sublime-*
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Local configuration
+config.local.js
+config.dev.js
+
+# Certificates and keys
+*.pem
+*.key
+
+# Database
+*.sqlite
+*.db
+
+# Mobile app specific
+src/web/driver-app/ios/Pods/
+src/web/driver-app/android/app/build/
+src/web/driver-app/android/.gradle/
+src/web/driver-app/android/local.properties
+src/web/driver-app/android/captures/
+src/web/driver-app/android/gradlew
+src/web/driver-app/android/gradlew.bat
+src/web/driver-app/android/gradle/
+src/web/driver-app/*.hprof
+src/web/driver-app/*.jsbundle
+
+# Infrastructure
+infrastructure/terraform/.terraform/
+infrastructure/terraform/**/*.tfstate
+infrastructure/terraform/**/*.tfstate.backup
+infrastructure/terraform/**/*.tfvars
+infrastructure/terraform/**/.terraform.lock.hcl
+
+# Generated files
+stats.json
+
+# Dependency lock files
+!package-lock.json
+!yarn.lock
+!pnpm-lock.yaml
