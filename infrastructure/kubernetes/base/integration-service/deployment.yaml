@@ -1,0 +1,142 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: integration-service
+  namespace: default
+  labels:
+    app: integration-service
+    component: integration
+    part-of: freight-optimization
+  annotations:
+    description: "Deployment for the Integration Service that manages connections with external systems"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: integration-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: integration-service
+        component: integration
+        part-of: freight-optimization
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "3001"
+    spec:
+      containers:
+      - name: integration-service
+        image: freight-optimization/integration-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 3001
+          protocol: TCP
+        - name: webhook
+          containerPort: 3005
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3001"
+        - name: SERVICE_NAME
+          value: "integration-service"
+        - name: WEBHOOK_PORT
+          value: "3005"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: ELD_INTEGRATION_ENABLED
+          value: "true"
+        - name: TMS_INTEGRATION_ENABLED
+          value: "true"
+        - name: PAYMENT_INTEGRATION_ENABLED
+          value: "true"
+        - name: MAPPING_INTEGRATION_ENABLED
+          value: "true"
+        - name: WEATHER_INTEGRATION_ENABLED
+          value: "true"
+        - name: KAFKA_BROKER_URLS
+          value: "kafka:9092"
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: DATABASE_HOST
+          value: "postgres"
+        - name: DATABASE_PORT
+          value: "5432"
+        - name: DATABASE_NAME
+          value: "integration_service"
+        - name: KEEPTRUCKIN_API_ENDPOINT
+          value: "https://api.keeptruckin.com/v1"
+        - name: OMNITRACS_API_ENDPOINT
+          value: "https://api.omnitracs.com/v1"
+        - name: SAMSARA_API_ENDPOINT
+          value: "https://api.samsara.com/v1"
+        - name: MCLEOD_API_ENDPOINT
+          value: "https://api.mcleod.com/v1"
+        - name: TMW_API_ENDPOINT
+          value: "https://api.tmw.com/v1"
+        - name: MERCURYGATE_API_ENDPOINT
+          value: "https://api.mercurygate.com/v1"
+        - name: GOOGLE_MAPS_API_ENDPOINT
+          value: "https://maps.googleapis.com/maps/api"
+        - name: MAPBOX_API_ENDPOINT
+          value: "https://api.mapbox.com"
+        - name: WEATHER_API_ENDPOINT
+          value: "https://api.openweathermap.org/data/2.5"
+        - name: WEBHOOK_PATH_PREFIX
+          value: "/webhooks"
+        - name: WEBHOOK_SIGNATURE_VALIDATION
+          value: "true"
+        envFrom:
+        - secretRef:
+            name: integration-service-secrets
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: integration-service-cache
+          mountPath: /app/cache
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: integration-service-cache
+        emptyDir: {}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      terminationGracePeriodSeconds: 60
