@@ -1,0 +1,530 @@
+# Production environment specific values for the AI-driven Freight Optimization Platform
+# This file overrides the default values.yaml with production-specific configurations
+
+global:
+  environment: production
+  region: us-east-1
+  domain: freightoptimization.com
+
+# Services configuration with production-specific overrides
+apiGateway:
+  replicaCount: 3
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 20
+  config:
+    logLevel: info
+    corsOrigin: https://freightoptimization.com,https://carrier.freightoptimization.com,https://shipper.freightoptimization.com
+    rateLimitMax: "1000"
+    rateLimitWindowMs: "60000"
+    serviceHealthCheckIntervalMs: "30000"
+    serviceTimeoutMs: "5000"
+    circuitBreakerFailureThreshold: "5"
+    circuitBreakerResetTimeoutMs: "30000"
+    swaggerEnabled: "false"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+authService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+  config:
+    logLevel: info
+    tokenExpirationSeconds: "3600"
+    refreshTokenExpirationDays: "30"
+    passwordHashRounds: "10"
+    swaggerEnabled: "false"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+loadMatchingService:
+  replicaCount: 3
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 15
+  config:
+    logLevel: info
+    reservationTimeoutSeconds: "300"
+    matchScoreThreshold: "50"
+    swaggerEnabled: "false"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+driverService:
+  replicaCount: 3
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 12
+  config:
+    logLevel: info
+    hosUpdateIntervalMinutes: "15"
+    swaggerEnabled: "false"
+  resources:
+    requests:
+      cpu: 300m
+      memory: 512Mi
+    limits:
+      cpu: 700m
+      memory: 1Gi
+
+loadService:
+  replicaCount: 3
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 8
+  config:
+    logLevel: info
+    s3Bucket: freight-documents
+    s3Region: us-east-1
+    swaggerEnabled: "false"
+  resources:
+    requests:
+      cpu: 300m
+      memory: 512Mi
+    limits:
+      cpu: 700m
+      memory: 1Gi
+
+trackingService:
+  replicaCount: 5
+  autoscaling:
+    minReplicas: 5
+    maxReplicas: 20
+  config:
+    logLevel: info
+    positionUpdateIntervalSeconds: "30"
+    historicalPositionRetentionDays: "90"
+    swaggerEnabled: "false"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+optimizationEngine:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 10
+  config:
+    logLevel: info
+    optimizationIntervalMinutes: "5"
+    modelUpdateIntervalHours: "24"
+    modelRegistryPath: s3://freight-models
+    sagemakerEndpoint: optimization-endpoint
+    swaggerEnabled: "false"
+  resources:
+    requests:
+      cpu: 1
+      memory: 4Gi
+    limits:
+      cpu: 2
+      memory: 8Gi
+
+gamificationService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+  config:
+    logLevel: info
+    leaderboardUpdateIntervalMinutes: "15"
+    achievementCheckIntervalMinutes: "30"
+    swaggerEnabled: "false"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+marketIntelligenceService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+  config:
+    logLevel: info
+    rateUpdateIntervalMinutes: "30"
+    forecastUpdateIntervalHours: "4"
+    swaggerEnabled: "false"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+notificationService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 8
+  config:
+    logLevel: info
+    emailProvider: sendgrid
+    smsProvider: twilio
+    pushProvider: firebase
+    notificationRetentionDays: "90"
+    swaggerEnabled: "false"
+    firebaseProjectId: freight-optimization-prod
+    emailFromAddress: notifications@freightoptimization.com
+    emailFromName: Freight Optimization Platform
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+integrationService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+  config:
+    logLevel: info
+    eldSyncIntervalMinutes: "15"
+    tmsSyncIntervalMinutes: "30"
+    swaggerEnabled: "false"
+  resources:
+    requests:
+      cpu: 300m
+      memory: 512Mi
+    limits:
+      cpu: 700m
+      memory: 1Gi
+
+eventBus:
+  replicaCount: 2
+  config:
+    logLevel: info
+    schemaValidationEnabled: "true"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+dataService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+  config:
+    logLevel: info
+    reportGenerationConcurrency: "5"
+    dataRetentionDays: "365"
+    swaggerEnabled: "false"
+  resources:
+    requests:
+      cpu: 300m
+      memory: 1Gi
+    limits:
+      cpu: 700m
+      memory: 2Gi
+
+cacheService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+  config:
+    logLevel: info
+    defaultTtlSeconds: "3600"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# Database configurations
+postgresql:
+  primary:
+    persistence:
+      size: 100Gi
+    resources:
+      requests:
+        cpu: 1
+        memory: 4Gi
+      limits:
+        cpu: 2
+        memory: 8Gi
+  readReplicas:
+    replicaCount: 2
+    persistence:
+      size: 100Gi
+    resources:
+      requests:
+        cpu: 1
+        memory: 4Gi
+      limits:
+        cpu: 2
+        memory: 8Gi
+
+timescaledb:
+  persistence:
+    size: 200Gi
+  resources:
+    requests:
+      cpu: 2
+      memory: 8Gi
+    limits:
+      cpu: 4
+      memory: 16Gi
+
+redis:
+  master:
+    persistence:
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1
+        memory: 4Gi
+  replica:
+    replicaCount: 2
+    persistence:
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1
+        memory: 4Gi
+
+mongodb:
+  replicaCount: 3
+  persistence:
+    size: 50Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 1
+      memory: 4Gi
+
+elasticsearch:
+  master:
+    replicaCount: 3
+    heapSize: 1g
+    persistence:
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1
+        memory: 3Gi
+  data:
+    replicaCount: 3
+    heapSize: 4g
+    persistence:
+      size: 100Gi
+    resources:
+      requests:
+        cpu: 1
+        memory: 8Gi
+      limits:
+        cpu: 2
+        memory: 12Gi
+  coordinating:
+    replicaCount: 2
+    heapSize: 2g
+    resources:
+      requests:
+        cpu: 500m
+        memory: 4Gi
+      limits:
+        cpu: 1
+        memory: 6Gi
+  ingest:
+    enabled: true
+    replicaCount: 2
+    heapSize: 1g
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1
+        memory: 3Gi
+
+kafka:
+  replicaCount: 3
+  persistence:
+    size: 100Gi
+  resources:
+    requests:
+      cpu: 1
+      memory: 4Gi
+    limits:
+      cpu: 2
+      memory: 8Gi
+  zookeeper:
+    replicaCount: 3
+    persistence:
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 2Gi
+
+# Monitoring configurations
+prometheus:
+  server:
+    retention: 15d
+    persistentVolume:
+      size: 50Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1
+        memory: 4Gi
+  alertmanager:
+    persistentVolume:
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+
+grafana:
+  persistence:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# Ingress configuration
+ingress:
+  hosts:
+    - host: freightoptimization.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: api-gateway
+          port: 80
+  tls:
+    - secretName: freight-platform-tls
+      hosts:
+        - freightoptimization.com
+        - carrier.freightoptimization.com
+        - shipper.freightoptimization.com
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+
+# Persistence configuration
+persistence:
+  storageClass: gp3
+  accessMode: ReadWriteOnce
+
+# Security configuration
+security:
+  networkPolicies:
+    enabled: true
+  podSecurityPolicies:
+    enabled: true
+  rbac:
+    create: true
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+
+# High availability configuration
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - freight-platform
+        topologyKey: kubernetes.io/hostname
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: app.kubernetes.io/component
+          operator: In
+          values:
+          - database
+      topologyKey: topology.kubernetes.io/zone
+
+nodeSelector:
+  role: application
+  environment: production
+
+tolerations:
+- key: node-role.kubernetes.io/production
+  operator: Exists
+  effect: NoSchedule
+
+priorityClassName: production-critical
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+backups:
+  enabled: true
+  schedule: "0 2 * * *"
+  retention: 30
+  destination: s3://freight-platform-backups/production
+
+highAvailability:
+  enabled: true
+  multiAZ: true
+  readReplicas: true
