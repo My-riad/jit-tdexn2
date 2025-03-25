@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gamification-service-config
+  namespace: default
+  labels:
+    app: gamification-service
+    component: gamification
+    part-of: freight-optimization
+  annotations:
+    description: Configuration for the Gamification Service that implements scoring, rewards, leaderboards, and incentives for drivers
+data:
+  # General configuration
+  LOG_LEVEL: info
+  NODE_ENV: production
+  API_VERSION: v1
+  ENABLE_SWAGGER: "true"
+  
+  # Database connections
+  POSTGRES_HOST: postgres-postgresql.database
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: freight_optimization
+  REDIS_HOST: redis-master.cache
+  REDIS_PORT: "6379"
+  KAFKA_BROKERS: kafka-headless.messaging:9092
+  KAFKA_CLIENT_ID: gamification-service
+  
+  # Efficiency score weights (must sum to 1.0)
+  SCORE_WEIGHT_EMPTY_MILES: "0.3"    # 30% weight for empty mile reduction
+  SCORE_WEIGHT_NETWORK: "0.25"       # 25% weight for network contribution
+  SCORE_WEIGHT_ON_TIME: "0.2"        # 20% weight for on-time performance
+  SCORE_WEIGHT_HUB: "0.15"           # 15% weight for Smart Hub utilization
+  SCORE_WEIGHT_FUEL: "0.1"           # 10% weight for fuel efficiency
+  
+  # Leaderboard configuration
+  LEADERBOARD_UPDATE_INTERVAL: "3600000"     # Update leaderboards every hour (in ms)
+  LEADERBOARD_CACHE_TTL: "300000"            # Cache leaderboard data for 5 minutes (in ms)
+  LEADERBOARD_WEEKLY_RESET_DAY: "0"          # Reset weekly leaderboard on Sunday (0)
+  LEADERBOARD_MONTHLY_RESET_DAY: "1"         # Reset monthly leaderboard on the 1st
+  LEADERBOARD_TOP_DRIVER_COUNT: "100"        # Number of top drivers to display
+  LEADERBOARD_REGIONAL_ENABLED: "true"       # Enable region-specific leaderboards
+  
+  # Achievement configuration
+  ACHIEVEMENT_CHECK_INTERVAL: "86400000"     # Check for new achievements daily (in ms)
+  ACHIEVEMENT_BADGE_BASE_PATH: assets/images/achievement-badges/
+  ACHIEVEMENT_NOTIFICATION_ENABLED: "true"   # Send notifications for new achievements
+  
+  # Bonus zone configuration
+  BONUS_ZONE_MIN_MULTIPLIER: "1.1"           # Minimum bonus multiplier (10% bonus)
+  BONUS_ZONE_MAX_MULTIPLIER: "2.0"           # Maximum bonus multiplier (100% bonus)
+  BONUS_ZONE_DEFAULT_DURATION: "86400000"    # Default bonus zone duration of 24 hours (in ms)
+  BONUS_ZONE_MIN_RADIUS: "50"                # Minimum bonus zone radius in miles
+  BONUS_ZONE_MAX_RADIUS: "200"               # Maximum bonus zone radius in miles
+  BONUS_ZONE_UPDATE_INTERVAL: "3600000"      # Update bonus zones hourly (in ms)
