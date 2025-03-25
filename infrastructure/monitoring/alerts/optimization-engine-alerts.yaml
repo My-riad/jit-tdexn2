@@ -1,0 +1,384 @@
+groups:
+  - name: optimization-engine-availability
+    rules:
+      - alert: OptimizationEngineDown
+        expr: sum(up{job="optimization-engine"}) < 1
+        for: 1m
+        labels:
+          severity: critical
+          service: optimization-engine
+          category: availability
+        annotations:
+          summary: Optimization Engine is down
+          description: Optimization Engine has been down for more than 1 minute
+          impact: Network-wide optimization and load matching capabilities are unavailable
+          action: Check Optimization Engine logs and restart the service if necessary
+
+      - alert: OptimizationEngineHighUnavailability
+        expr: sum(kube_deployment_status_replicas_available{deployment="optimization-engine"}) / sum(kube_deployment_status_replicas{deployment="optimization-engine"}) < 0.7
+        for: 5m
+        labels:
+          severity: critical
+          service: optimization-engine
+          category: availability
+        annotations:
+          summary: Optimization Engine has high unavailability
+          description: Less than 70% of Optimization Engine replicas are available for more than 5 minutes
+          impact: Reduced capacity for optimization operations and potential service degradation
+          action: Check pod status and logs for errors
+
+      - alert: OptimizationEngineReplicasMismatch
+        expr: kube_deployment_spec_replicas{deployment="optimization-engine"} != kube_deployment_status_replicas_available{deployment="optimization-engine"}
+        for: 15m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: availability
+        annotations:
+          summary: Optimization Engine replicas mismatch
+          description: Deployment replicas do not match available replicas for more than 15 minutes
+          impact: Potential scaling issues or pod failures
+          action: Check deployment status, pod events, and container logs
+
+  - name: optimization-engine-performance
+    rules:
+      - alert: OptimizationEngineHighJobDuration
+        expr: histogram_quantile(0.95, sum(rate(optimization_job_duration_seconds_bucket{job="optimization-engine"}[5m])) by (le)) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: performance
+        annotations:
+          summary: Optimization Engine job duration is high
+          description: 95th percentile of optimization job duration is above 5 seconds for more than 5 minutes
+          impact: Slow optimization processing affecting load matching and network efficiency
+          action: Check Optimization Engine performance, resource utilization, and algorithm efficiency
+
+      - alert: OptimizationEngineCriticalJobDuration
+        expr: histogram_quantile(0.95, sum(rate(optimization_job_duration_seconds_bucket{job="optimization-engine"}[5m])) by (le)) > 10
+        for: 5m
+        labels:
+          severity: critical
+          service: optimization-engine
+          category: performance
+        annotations:
+          summary: Optimization Engine job duration is critically high
+          description: 95th percentile of optimization job duration is above 10 seconds for more than 5 minutes
+          impact: Severe performance degradation affecting the entire optimization pipeline
+          action: Immediate investigation required, check system resources and optimization algorithms
+
+      - alert: OptimizationEngineSlowJobsByType
+        expr: histogram_quantile(0.95, sum(rate(optimization_job_duration_seconds_bucket{job="optimization-engine"}[5m])) by (le, job_type)) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: performance
+        annotations:
+          summary: Optimization Engine has slow jobs by type
+          description: Job type {{ $labels.job_type }} has 95th percentile duration above 5 seconds for more than 5 minutes
+          impact: Specific optimization type is experiencing performance issues
+          action: Investigate the specific job type algorithm and resource allocation
+
+  - name: optimization-engine-errors
+    rules:
+      - alert: OptimizationEngineHighErrorRate
+        expr: sum(rate(optimization_jobs_total{job="optimization-engine", status="failed"}[5m])) / sum(rate(optimization_jobs_total{job="optimization-engine"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: errors
+        annotations:
+          summary: Optimization Engine has high error rate
+          description: Error rate is above 5% for more than 5 minutes
+          impact: Some optimization jobs are failing, affecting network efficiency
+          action: Check Optimization Engine logs and algorithm parameters
+
+      - alert: OptimizationEngineCriticalErrorRate
+        expr: sum(rate(optimization_jobs_total{job="optimization-engine", status="failed"}[5m])) / sum(rate(optimization_jobs_total{job="optimization-engine"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: optimization-engine
+          category: errors
+        annotations:
+          summary: Optimization Engine has critical error rate
+          description: Error rate is above 10% for more than 5 minutes
+          impact: Significant number of optimization jobs are failing, severely affecting network efficiency
+          action: Immediate investigation required, check system logs and dependent services
+
+      - alert: OptimizationEngineJobTypeHighFailure
+        expr: sum(rate(optimization_jobs_total{job="optimization-engine", status="failed"}[5m])) by (job_type) / sum(rate(optimization_jobs_total{job="optimization-engine"}[5m])) by (job_type) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: errors
+        annotations:
+          summary: Optimization Engine job type has high failure rate
+          description: Job type {{ $labels.job_type }} has failure rate above 10% for more than 5 minutes
+          impact: Specific optimization type is experiencing high failure rates
+          action: Investigate the specific job type algorithm and input data
+
+  - name: optimization-engine-resources
+    rules:
+      - alert: OptimizationEngineHighCPUUsage
+        expr: sum(rate(container_cpu_usage_seconds_total{pod=~"optimization-engine-.*"}[5m])) by (pod) / sum(kube_pod_container_resource_limits{pod=~"optimization-engine-.*", resource="cpu"}) by (pod) > 0.8
+        for: 15m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: resources
+        annotations:
+          summary: Optimization Engine has high CPU usage
+          description: Pod {{ $labels.pod }} is using more than 80% of its CPU limit for more than 15 minutes
+          impact: Risk of performance degradation if usage continues to increase
+          action: Check Optimization Engine load and consider scaling if necessary
+
+      - alert: OptimizationEngineHighMemoryUsage
+        expr: sum(container_memory_working_set_bytes{pod=~"optimization-engine-.*"}) by (pod) / sum(kube_pod_container_resource_limits{pod=~"optimization-engine-.*", resource="memory"}) by (pod) > 0.8
+        for: 15m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: resources
+        annotations:
+          summary: Optimization Engine has high memory usage
+          description: Pod {{ $labels.pod }} is using more than 80% of its memory limit for more than 15 minutes
+          impact: Risk of OOM kills if usage continues to increase
+          action: Check Optimization Engine memory usage patterns and consider scaling if necessary
+
+      - alert: OptimizationEngineCriticalCPUUsage
+        expr: sum(rate(container_cpu_usage_seconds_total{pod=~"optimization-engine-.*"}[5m])) by (pod) / sum(kube_pod_container_resource_limits{pod=~"optimization-engine-.*", resource="cpu"}) by (pod) > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          service: optimization-engine
+          category: resources
+        annotations:
+          summary: Optimization Engine has critical CPU usage
+          description: Pod {{ $labels.pod }} is using more than 90% of its CPU limit for more than 5 minutes
+          impact: Severe performance degradation and potential throttling
+          action: Immediate scaling required or investigate high CPU usage cause
+
+      - alert: OptimizationEngineCriticalMemoryUsage
+        expr: sum(container_memory_working_set_bytes{pod=~"optimization-engine-.*"}) by (pod) / sum(kube_pod_container_resource_limits{pod=~"optimization-engine-.*", resource="memory"}) by (pod) > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          service: optimization-engine
+          category: resources
+        annotations:
+          summary: Optimization Engine has critical memory usage
+          description: Pod {{ $labels.pod }} is using more than 90% of its memory limit for more than 5 minutes
+          impact: Imminent risk of OOM kills and service disruption
+          action: Immediate scaling required or investigate memory usage cause
+
+      - alert: OptimizationEngineHighQueueDepth
+        expr: sum(optimization_queue_depth{job="optimization-engine"}) > 20
+        for: 10m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: resources
+        annotations:
+          summary: Optimization Engine has high queue depth
+          description: Optimization job queue depth is above 20 for more than 10 minutes
+          impact: Increasing backlog of optimization jobs may lead to delays
+          action: Check processing rate and consider scaling if necessary
+
+  - name: optimization-engine-smart-hub
+    rules:
+      - alert: OptimizationEngineSmartHubHighLatency
+        expr: histogram_quantile(0.95, sum(rate(smart_hub_identification_duration_seconds_bucket{job="optimization-engine"}[5m])) by (le)) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: smart-hub
+        annotations:
+          summary: Smart Hub identification has high latency
+          description: 95th percentile of Smart Hub identification duration is above 5 seconds for more than 5 minutes
+          impact: Slow Smart Hub identification affecting relay planning and network efficiency
+          action: Check Smart Hub identification algorithm and geospatial processing performance
+
+      - alert: OptimizationEngineSmartHubLowSuccessRate
+        expr: sum(rate(smart_hub_identifications_total{job="optimization-engine", status="success"}[15m])) / sum(rate(smart_hub_identifications_total{job="optimization-engine"}[15m])) < 0.8
+        for: 15m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: smart-hub
+        annotations:
+          summary: Smart Hub identification has low success rate
+          description: Less than 80% of Smart Hub identification attempts are successful for more than 15 minutes
+          impact: Reduced Smart Hub availability affecting relay planning and network efficiency
+          action: Check Smart Hub identification algorithm parameters and input data quality
+
+  - name: optimization-engine-relay-planning
+    rules:
+      - alert: OptimizationEngineRelayPlanningHighLatency
+        expr: histogram_quantile(0.95, sum(rate(relay_plan_creation_duration_seconds_bucket{job="optimization-engine"}[5m])) by (le)) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: relay-planning
+        annotations:
+          summary: Relay plan creation has high latency
+          description: 95th percentile of relay plan creation duration is above 5 seconds for more than 5 minutes
+          impact: Slow relay planning affecting driver coordination and network efficiency
+          action: Check relay planning algorithm and processing performance
+
+      - alert: OptimizationEngineRelayPlanningLowSuccessRate
+        expr: sum(rate(relay_plans_created_total{job="optimization-engine", status="success"}[15m])) / sum(rate(relay_plans_created_total{job="optimization-engine"}[15m])) < 0.7
+        for: 15m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: relay-planning
+        annotations:
+          summary: Relay planning has low success rate
+          description: Less than 70% of relay planning attempts are successful for more than 15 minutes
+          impact: Reduced relay opportunities affecting driver home time and network efficiency
+          action: Check relay planning algorithm parameters and driver availability data
+
+  - name: optimization-engine-ml-models
+    rules:
+      - alert: OptimizationEngineMLPredictionHighLatency
+        expr: histogram_quantile(0.95, sum(rate(ml_prediction_duration_seconds_bucket{job="optimization-engine"}[5m])) by (le, model)) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: ml-models
+        annotations:
+          summary: ML prediction has high latency
+          description: 95th percentile of ML prediction duration for model {{ $labels.model }} is above 1 second for more than 5 minutes
+          impact: Slow ML predictions affecting optimization quality and performance
+          action: Check ML model complexity and inference infrastructure
+
+      - alert: OptimizationEngineMLModelLowAccuracy
+        expr: ml_model_accuracy{job="optimization-engine"} < 0.8
+        for: 30m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: ml-models
+        annotations:
+          summary: ML model has low accuracy
+          description: ML model {{ $labels.model }} has accuracy below 80% for more than 30 minutes
+          impact: Reduced prediction quality affecting optimization decisions
+          action: Check model training data and consider retraining or rollback
+
+      - alert: OptimizationEngineMLTrainingFailure
+        expr: ml_model_training_status{job="optimization-engine", status="failed"} > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: ml-models
+        annotations:
+          summary: ML model training failure
+          description: ML model {{ $labels.model }} training has failed
+          impact: Unable to update model with latest data, potentially affecting prediction quality
+          action: Check training logs and data pipeline
+
+  - name: optimization-engine-dependencies
+    rules:
+      - alert: OptimizationEngineDriverServiceUnavailable
+        expr: sum(driver_service_availability{job="optimization-engine"}) == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: optimization-engine
+          category: dependencies
+        annotations:
+          summary: Driver Service unavailable for Optimization Engine
+          description: Driver Service has been unavailable for more than 5 minutes
+          impact: Cannot retrieve driver information for optimization
+          action: Check Driver Service status and connectivity
+
+      - alert: OptimizationEngineLoadServiceUnavailable
+        expr: sum(load_service_availability{job="optimization-engine"}) == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: optimization-engine
+          category: dependencies
+        annotations:
+          summary: Load Service unavailable for Optimization Engine
+          description: Load Service has been unavailable for more than 5 minutes
+          impact: Cannot retrieve load information for optimization
+          action: Check Load Service status and connectivity
+
+      - alert: OptimizationEngineCircuitBreakerOpen
+        expr: circuit_breaker_state{job="optimization-engine", state="open"} > 0
+        for: 1m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: dependencies
+        annotations:
+          summary: Optimization Engine circuit breaker open
+          description: Circuit breaker for service {{ $labels.service }} is in open state for more than 1 minute
+          impact: Requests to {{ $labels.service }} are failing fast, affecting optimization functionality
+          action: Check the health of the {{ $labels.service }} and its dependencies
+
+  - name: optimization-engine-traffic
+    rules:
+      - alert: OptimizationEngineHighTraffic
+        expr: sum(rate(optimization_jobs_total{job="optimization-engine"}[5m])) > 100
+        for: 15m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: traffic
+        annotations:
+          summary: Optimization Engine experiencing high traffic
+          description: Optimization job rate is above 100 jobs/min for more than 15 minutes
+          impact: High load may affect performance if sustained
+          action: Monitor performance metrics and consider scaling if necessary
+
+      - alert: OptimizationEngineSuddenTrafficDrop
+        expr: sum(rate(optimization_jobs_total{job="optimization-engine"}[5m])) < sum(rate(optimization_jobs_total{job="optimization-engine"}[1h] offset 5m)) * 0.5 and sum(rate(optimization_jobs_total{job="optimization-engine"}[1h] offset 5m)) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: traffic
+        annotations:
+          summary: Sudden drop in Optimization Engine traffic
+          description: Optimization job rate has dropped by more than 50% compared to 1 hour ago
+          impact: Potential upstream service problems or job submission issues
+          action: Check Load Matching Service and other upstream services
+
+  - name: optimization-engine-python
+    rules:
+      - alert: OptimizationEnginePythonHighGCDuration
+        expr: rate(python_gc_collection_seconds_sum{job="optimization-engine"}[5m]) / rate(python_gc_collection_count{job="optimization-engine"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: python
+        annotations:
+          summary: Optimization Engine Python high GC duration
+          description: Python garbage collection is taking more than 10% of CPU time for more than 5 minutes
+          impact: Garbage collection is affecting application performance
+          action: Check memory usage patterns and optimize memory allocation
+
+      - alert: OptimizationEnginePythonHighThreadCount
+        expr: python_threads{job="optimization-engine"} > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: optimization-engine
+          category: python
+        annotations:
+          summary: Optimization Engine Python high thread count
+          description: Python thread count is above 100 for more than 5 minutes
+          impact: High thread count may lead to contention and performance issues
+          action: Check for thread leaks and optimize concurrency
