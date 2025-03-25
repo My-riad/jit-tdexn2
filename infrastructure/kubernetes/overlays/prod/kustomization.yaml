@@ -1,0 +1,249 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: production-overlay
+
+# Reference to base resources
+resources:
+  - ../../base/api-gateway
+  - ../../base/auth-service
+  - ../../base/cache-service
+  - ../../base/data-service
+  - ../../base/driver-service
+  - ../../base/event-bus
+  - ../../base/gamification-service
+  - ../../base/integration-service
+  - ../../base/load-matching-service
+  - ../../base/load-service
+  - ../../base/market-intelligence-service
+  - ../../base/notification-service
+  - ../../base/optimization-engine
+  - ../../base/tracking-service
+  - ../../base/ingress
+  - ../../base/monitoring
+  - ../../base/networking
+  - ../../base/security
+
+# Production namespace
+namespace: freight-prod
+
+# Common labels for all resources
+commonLabels:
+  environment: production
+  managed-by: kustomize
+  part-of: freight-optimization
+
+# Common annotations for all resources
+commonAnnotations:
+  environment: production
+  contact: ops-team@freight-optimization.com
+  description: Production environment for the AI-driven Freight Optimization Platform
+
+# Patches to apply to base resources
+patches:
+  - path: patches/full-replicas.yaml
+    target:
+      kind: Deployment
+      labelSelector: part-of=freight-optimization
+  - path: patches/full-resources.yaml
+    target:
+      kind: Deployment
+      labelSelector: part-of=freight-optimization
+  - path: patches/pod-disruption-budget.yaml
+    target:
+      kind: Deployment
+      labelSelector: part-of=freight-optimization
+
+# ConfigMap generators for service configuration
+configMapGenerator:
+  - name: api-gateway-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - CORS_ORIGIN=https://freightoptimization.com
+      - RATE_LIMIT_MAX=1000
+      - RATE_LIMIT_WINDOW_MS=60000
+      - SWAGGER_ENABLED=false
+  - name: load-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - ENABLE_SWAGGER=false
+      - DB_HOST=postgres-prod
+      - DB_PORT=5432
+      - DB_NAME=load_service_prod
+      - KAFKA_BROKERS=kafka-prod:9092
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+      - S3_BUCKET=freight-prod-documents
+      - S3_REGION=us-east-1
+  - name: driver-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - ENABLE_SWAGGER=false
+      - DB_HOST=postgres-prod
+      - DB_PORT=5432
+      - DB_NAME=driver_service_prod
+      - KAFKA_BROKERS=kafka-prod:9092
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+  - name: tracking-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - ENABLE_SWAGGER=false
+      - DB_HOST=timescaledb-prod
+      - DB_PORT=5432
+      - DB_NAME=tracking_service_prod
+      - KAFKA_BROKERS=kafka-prod:9092
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+      - POSITION_UPDATE_INTERVAL_SECONDS=15
+  - name: optimization-engine-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - ENABLE_SWAGGER=false
+      - DB_HOST=postgres-prod
+      - DB_PORT=5432
+      - DB_NAME=optimization_engine_prod
+      - KAFKA_BROKERS=kafka-prod:9092
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+      - MODEL_REGISTRY_PATH=s3://freight-prod-models
+      - SAGEMAKER_ENDPOINT=prod-optimization-endpoint
+      - OPTIMIZATION_INTERVAL_MINUTES=2
+  - name: gamification-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - ENABLE_SWAGGER=false
+      - DB_HOST=postgres-prod
+      - DB_PORT=5432
+      - DB_NAME=gamification_service_prod
+      - KAFKA_BROKERS=kafka-prod:9092
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+  - name: market-intelligence-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - ENABLE_SWAGGER=false
+      - DB_HOST=postgres-prod
+      - DB_PORT=5432
+      - DB_NAME=market_intelligence_service_prod
+      - KAFKA_BROKERS=kafka-prod:9092
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+      - MARKET_DATA_UPDATE_INTERVAL_MINUTES=15
+  - name: notification-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - ENABLE_SWAGGER=false
+      - KAFKA_BROKERS=kafka-prod:9092
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+      - FIREBASE_PROJECT_ID=freight-optimization-prod
+      - SENDGRID_API_VERSION=v3
+      - SMS_PROVIDER=twilio
+  - name: load-matching-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - ENABLE_SWAGGER=false
+      - DB_HOST=postgres-prod
+      - DB_PORT=5432
+      - DB_NAME=load_matching_service_prod
+      - KAFKA_BROKERS=kafka-prod:9092
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+      - MATCHING_ALGORITHM_VERSION=v2
+  - name: integration-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - ENABLE_SWAGGER=false
+      - DB_HOST=postgres-prod
+      - DB_PORT=5432
+      - DB_NAME=integration_service_prod
+      - KAFKA_BROKERS=kafka-prod:9092
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+
+# Image transformations for production images
+images:
+  - name: {{ .Values.image.repository }}/api-gateway
+    newName: freight-registry.prod/api-gateway
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/auth-service
+    newName: freight-registry.prod/auth-service
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/load-service
+    newName: freight-registry.prod/load-service
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/driver-service
+    newName: freight-registry.prod/driver-service
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/tracking-service
+    newName: freight-registry.prod/tracking-service
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/optimization-engine
+    newName: freight-registry.prod/optimization-engine
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/gamification-service
+    newName: freight-registry.prod/gamification-service
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/market-intelligence-service
+    newName: freight-registry.prod/market-intelligence-service
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/notification-service
+    newName: freight-registry.prod/notification-service
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/integration-service
+    newName: freight-registry.prod/integration-service
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/load-matching-service
+    newName: freight-registry.prod/load-matching-service
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/event-bus
+    newName: freight-registry.prod/event-bus
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/cache-service
+    newName: freight-registry.prod/cache-service
+    newTag: v1.0.0
+  - name: {{ .Values.image.repository }}/data-service
+    newName: freight-registry.prod/data-service
+    newTag: v1.0.0
+
+# Strategic merge patches for production-specific configurations
+patchesStrategicMerge:
+  - overlays/api-gateway-prod.yaml
+  - overlays/ingress-prod.yaml
+  - overlays/monitoring-prod.yaml
+  - overlays/hpa-prod.yaml
+  - overlays/network-policies-prod.yaml
+  - overlays/security-context-prod.yaml
+
+# Secret generators for sensitive information
+secretGenerator:
+  - name: prod-db-credentials
+    envs:
+      - secrets/db-credentials.env
+  - name: prod-api-keys
+    envs:
+      - secrets/api-keys.env
+  - name: prod-jwt-secret
+    envs:
+      - secrets/jwt-secret.env
+  - name: prod-notification-credentials
+    envs:
+      - secrets/notification-credentials.env
+  - name: prod-integration-credentials
+    envs:
+      - secrets/integration-credentials.env
+  - name: prod-tls-certificates
+    files:
+      - secrets/tls.crt
+      - secrets/tls.key
