@@ -1,0 +1,161 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: default
+  labels:
+    app: notification-service
+    component: notification-service
+    part-of: freight-optimization
+  annotations:
+    description: "Notification Service for the AI-driven Freight Optimization Platform"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: notification-service
+        component: notification-service
+        part-of: freight-optimization
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3010"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: notification-service
+        image: "{{ .Values.image.repository }}/notification-service:{{ .Values.image.tag }}"
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3010
+          protocol: TCP
+        - name: websocket
+          containerPort: 3011
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: NOTIFICATION_SERVICE_HOST
+          value: "0.0.0.0"
+        - name: NOTIFICATION_SERVICE_PORT
+          value: "3010"
+        - name: WEBSOCKET_PORT
+          value: "3011"
+        - name: MONGODB_URI
+          value: "mongodb://mongodb:27017/notification-service"
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: KAFKA_GROUP_ID
+          value: "notification-service-group"
+        - name: KAFKA_TOPIC_SYSTEM_EVENTS
+          value: "system-events"
+        - name: KAFKA_TOPIC_NOTIFICATION_EVENTS
+          value: "notification-events"
+        - name: EMAIL_SERVICE
+          value: "sendgrid"
+        - name: EMAIL_FROM_ADDRESS
+          value: "notifications@freight-optimization.com"
+        - name: EMAIL_FROM_NAME
+          value: "Freight Optimization Platform"
+        - name: SMS_SERVICE
+          value: "twilio"
+        - name: SMS_FROM_NUMBER
+          value: "+15551234567"
+        - name: PUSH_SERVICE
+          value: "firebase"
+        - name: NOTIFICATION_QUEUE_JOB_RETENTION
+          value: "7"
+        - name: NOTIFICATION_QUEUE_CONCURRENCY
+          value: "5"
+        - name: ENABLE_EMAIL_NOTIFICATIONS
+          value: "true"
+        - name: ENABLE_SMS_NOTIFICATIONS
+          value: "true"
+        - name: ENABLE_PUSH_NOTIFICATIONS
+          value: "true"
+        - name: ENABLE_IN_APP_NOTIFICATIONS
+          value: "true"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: SENDGRID_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: notification-service-secrets
+              key: SENDGRID_API_KEY
+        - name: TWILIO_ACCOUNT_SID
+          valueFrom:
+            secretKeyRef:
+              name: notification-service-secrets
+              key: TWILIO_ACCOUNT_SID
+        - name: TWILIO_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: notification-service-secrets
+              key: TWILIO_AUTH_TOKEN
+        - name: FIREBASE_CREDENTIALS
+          valueFrom:
+            secretKeyRef:
+              name: notification-service-secrets
+              key: FIREBASE_CREDENTIALS
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
+      nodeSelector:
+        role: application
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - notification-service
+              topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
