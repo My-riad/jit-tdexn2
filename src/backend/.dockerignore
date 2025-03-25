@@ -1,0 +1,68 @@
+node_modules
+*/node_modules
+
+# Build outputs
+dist
+*/dist
+build
+*/build
+
+# Environment files
+.env
+*/.env
+.env.*
+
+# Git files
+.git
+.gitignore
+
+# Docker files
+docker-compose.yml
+
+# Test files
+tests
+*/tests
+__tests__
+*/__tests__
+coverage
+*/coverage
+.nyc_output
+
+# Documentation
+README.md
+*/README.md
+docs
+*/docs
+
+# Editor and IDE files
+.vscode
+.idea
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+logs
+*/logs
+*.log
+npm-debug.log*
+
+# Cache files
+.npm
+.eslintcache
+.prettiercache
+
+# Configuration files not needed in container
+.eslintrc.js
+prettier.config.js
+jest.config.ts
+babel.config.js
+nodemon.json
+
+# Infrastructure files
+infrastructure
+
+# Monitoring files
+monitoring
