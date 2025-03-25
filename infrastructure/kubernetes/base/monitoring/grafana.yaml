@@ -1,0 +1,461 @@
+apiVersion: v1 # Kubernetes API version
+kind: ServiceAccount # Type of Kubernetes resource
+metadata:
+  name: grafana # Name of the ServiceAccount
+  namespace: monitoring # Namespace where the ServiceAccount will be created
+  labels: # Labels to identify and organize the ServiceAccount
+    app: grafana # Application name
+    component: monitoring # Component name
+    part-of: freight-optimization # Part of the freight-optimization application
+
+---
+apiVersion: v1 # Kubernetes API version
+kind: ConfigMap # Type of Kubernetes resource
+metadata:
+  name: grafana-config # Name of the ConfigMap
+  namespace: monitoring # Namespace where the ConfigMap will be created
+  labels: # Labels to identify and organize the ConfigMap
+    app: grafana # Application name
+    component: monitoring # Component name
+    part-of: freight-optimization # Part of the freight-optimization application
+data:
+  grafana.ini: |
+    # Grafana configuration
+    [server]
+    root_url = ${GF_SERVER_ROOT_URL}
+
+    [auth]
+    disable_login_form = false
+
+    [auth.anonymous]
+    enabled = true
+    org_role = Viewer
+
+    [security]
+    admin_user = admin
+    admin_password = ${GF_SECURITY_ADMIN_PASSWORD}
+
+    [users]
+    allow_sign_up = false
+    auto_assign_org = true
+    auto_assign_org_role = Editor
+
+    [dashboards]
+    min_refresh_interval = 10s
+
+    [alerting]
+    enabled = true
+    execute_alerts = true
+
+    [unified_alerting]
+    enabled = true
+
+    [analytics]
+    reporting_enabled = false
+    check_for_updates = false
+
+    [log]
+    mode = console
+    level = info
+
+    [paths]
+    data = /var/lib/grafana
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+    provisioning = /etc/grafana/provisioning
+
+---
+apiVersion: v1 # Kubernetes API version
+kind: ConfigMap # Type of Kubernetes resource
+metadata:
+  name: grafana-datasources # Name of the ConfigMap
+  namespace: monitoring # Namespace where the ConfigMap will be created
+  labels: # Labels to identify and organize the ConfigMap
+    app: grafana # Application name
+    component: monitoring # Component name
+    part-of: freight-optimization # Part of the freight-optimization application
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        isDefault: true
+        version: 1
+        editable: false
+        jsonData:
+          timeInterval: 15s
+          httpMethod: POST
+          manageAlerts: true
+          prometheusType: Prometheus
+      - name: Elasticsearch
+        type: elasticsearch
+        access: proxy
+        url: http://elasticsearch:9200
+        database: logs-*
+        isDefault: false
+        version: 1
+        editable: false
+        jsonData:
+          timeField: '@timestamp'
+          esVersion: 7.10.0
+          maxConcurrentShardRequests: 5
+          logMessageField: message
+          logLevelField: level
+      - name: Jaeger
+        type: jaeger
+        access: proxy
+        url: http://jaeger-query:16686
+        isDefault: false
+        version: 1
+        editable: false
+        jsonData:
+          nodeGraph:
+            enabled: true
+      - name: PostgreSQL
+        type: postgres
+        url: postgres-exporter:9187
+        access: proxy
+        user: ${POSTGRES_USER}
+        secureJsonData:
+          password: ${POSTGRES_PASSWORD}
+        database: freight_platform
+        isDefault: false
+        version: 1
+        editable: false
+        jsonData:
+          sslmode: disable
+          postgresVersion: 1200
+          timescaledb: false
+      - name: TimescaleDB
+        type: postgres
+        url: timescaledb:5432
+        access: proxy
+        user: ${TIMESCALE_USER}
+        secureJsonData:
+          password: ${TIMESCALE_PASSWORD}
+        database: metrics
+        isDefault: false
+        version: 1
+        editable: false
+        jsonData:
+          sslmode: disable
+          postgresVersion: 1200
+          timescaledb: true
+
+---
+apiVersion: v1 # Kubernetes API version
+kind: ConfigMap # Type of Kubernetes resource
+metadata:
+  name: grafana-dashboards-providers # Name of the ConfigMap
+  namespace: monitoring # Namespace where the ConfigMap will be created
+  labels: # Labels to identify and organize the ConfigMap
+    app: grafana # Application name
+    component: monitoring # Component name
+    part-of: freight-optimization # Part of the freight-optimization application
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: System Dashboards
+        orgId: 1
+        folder: System
+        type: file
+        disableDeletion: true
+        editable: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: false
+        options:
+          path: /etc/grafana/provisioning/dashboards/system
+          foldersFromFilesStructure: true
+      - name: Service Dashboards
+        orgId: 1
+        folder: Services
+        type: file
+        disableDeletion: false
+        editable: true
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /etc/grafana/provisioning/dashboards/services
+          foldersFromFilesStructure: true
+      - name: Business Dashboards
+        orgId: 1
+        folder: Business
+        type: file
+        disableDeletion: false
+        editable: true
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /etc/grafana/provisioning/dashboards/business
+          foldersFromFilesStructure: true
+      - name: Executive Dashboards
+        orgId: 1
+        folder: Executive
+        type: file
+        disableDeletion: true
+        editable: false
+        updateIntervalSeconds: 60
+        allowUiUpdates: false
+        options:
+          path: /etc/grafana/provisioning/dashboards/executive
+          foldersFromFilesStructure: true
+      - name: Operations Dashboards
+        orgId: 1
+        folder: Operations
+        type: file
+        disableDeletion: false
+        editable: true
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /etc/grafana/provisioning/dashboards/operations
+          foldersFromFilesStructure: true
+      - name: Development Dashboards
+        orgId: 1
+        folder: Development
+        type: file
+        disableDeletion: false
+        editable: true
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /etc/grafana/provisioning/dashboards/development
+          foldersFromFilesStructure: true
+      - name: Security Dashboards
+        orgId: 1
+        folder: Security
+        type: file
+        disableDeletion: true
+        editable: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: false
+        options:
+          path: /etc/grafana/provisioning/dashboards/security
+          foldersFromFilesStructure: true
+
+---
+apiVersion: v1 # Kubernetes API version
+kind: ConfigMap # Type of Kubernetes resource
+metadata:
+  name: grafana-dashboards-system # Name of the ConfigMap
+  namespace: monitoring # Namespace where the ConfigMap will be created
+  labels: # Labels to identify and organize the ConfigMap
+    app: grafana # Application name
+    component: monitoring # Component name
+    part-of: freight-optimization # Part of the freight-optimization application
+data:
+  system-overview.json: |
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": "-- Grafana --",
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "gnetId": null,
+      "graphTooltip": 0,
+      "id": 1,
+      "iteration": 1,
+      "links": [],
+      "title": "System Overview Dashboard",
+      "uid": "system-overview",
+      "version": 1,
+      "description": "Comprehensive system overview dashboard for the AI-driven Freight Optimization Platform, showing service health, business metrics, API performance, AI optimization metrics, resource utilization, and database/message queue statistics.",
+      "refresh": "10s"
+    }
+
+---
+apiVersion: apps/v1 # Kubernetes API version for Deployments
+kind: Deployment # Type of Kubernetes resource
+metadata:
+  name: grafana # Name of the Deployment
+  namespace: monitoring # Namespace where the Deployment will be created
+  labels: # Labels to identify and organize the Deployment
+    app: grafana # Application name
+    component: monitoring # Component name
+    part-of: freight-optimization # Part of the freight-optimization application
+spec:
+  replicas: 1 # Number of pod replicas to maintain
+  selector:
+    matchLabels:
+      app: grafana # Selector to match pods managed by this Deployment
+  strategy:
+    type: RollingUpdate # Strategy for updating pods
+  template: # Template for creating pods
+    metadata:
+      labels: # Labels to identify and organize the pods
+        app: grafana # Application name
+        component: monitoring # Component name
+        part-of: freight-optimization # Part of the freight-optimization application
+      annotations: # Annotations for the pods
+        prometheus.io/scrape: "true" # Enable Prometheus scraping
+        prometheus.io/port: "3000" # Prometheus port
+    spec:
+      serviceAccountName: grafana # Associate the ServiceAccount with the pod
+      containers:
+        - name: grafana # Name of the container
+          image: grafana/grafana:9.3.6 # Grafana image and version // grafana version: 9.3.6
+          imagePullPolicy: IfNotPresent # Image pull policy
+          ports:
+            - name: http # Port name
+              containerPort: 3000 # Container port
+              protocol: TCP # Protocol
+          env: # Environment variables
+            - name: GF_SECURITY_ADMIN_PASSWORD # Grafana admin password
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-credentials # Secret name
+                  key: admin-password # Secret key
+            - name: GF_SERVER_ROOT_URL # Grafana root URL
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config # ConfigMap name
+                  key: grafana_url # ConfigMap key
+            - name: POSTGRES_USER # PostgreSQL user
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials # Secret name
+                  key: postgres-user # Secret key
+            - name: POSTGRES_PASSWORD # PostgreSQL password
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials # Secret name
+                  key: postgres-password # Secret key
+            - name: TIMESCALE_USER # TimescaleDB user
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials # Secret name
+                  key: timescale-user # Secret key
+            - name: TIMESCALE_PASSWORD # TimescaleDB password
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials # Secret name
+                  key: timescale-password # Secret key
+          resources: # Resource requests and limits
+            requests:
+              cpu: "200m" # CPU request
+              memory: "256Mi" # Memory request
+            limits:
+              cpu: "500m" # CPU limit
+              memory: "512Mi" # Memory limit
+          volumeMounts: # Volume mounts
+            - name: config # Volume name
+              mountPath: /etc/grafana/grafana.ini # Mount path
+              subPath: grafana.ini # Subpath within the volume
+            - name: datasources # Volume name
+              mountPath: /etc/grafana/provisioning/datasources # Mount path
+            - name: dashboards-providers # Volume name
+              mountPath: /etc/grafana/provisioning/dashboards # Mount path
+            - name: dashboards-system # Volume name
+              mountPath: /etc/grafana/provisioning/dashboards/system # Mount path
+            - name: grafana-data # Volume name
+              mountPath: /var/lib/grafana # Mount path
+          livenessProbe: # Liveness probe to check container health
+            httpGet:
+              path: /api/health # Path to check
+              port: http # Port name
+            initialDelaySeconds: 30 # Initial delay before probing
+            timeoutSeconds: 10 # Probe timeout
+            periodSeconds: 30 # Probe frequency
+            failureThreshold: 3 # Number of failures before restart
+          readinessProbe: # Readiness probe to check container readiness
+            httpGet:
+              path: /api/health # Path to check
+              port: http # Port name
+            initialDelaySeconds: 30 # Initial delay before probing
+            timeoutSeconds: 10 # Probe timeout
+            periodSeconds: 30 # Probe frequency
+            failureThreshold: 3 # Number of failures before marking unready
+        - name: config-reloader # Name of the config-reloader container
+          image: jimmidyson/configmap-reload:v0.7.1 # Image for config-reloader // configmap-reload version: v0.7.1
+          imagePullPolicy: IfNotPresent # Image pull policy
+          args: # Arguments for the config-reloader
+            - "--volume-dir=/etc/grafana/provisioning" # Volume directory to watch
+            - "--webhook-url=http://localhost:3000/api/admin/provisioning/dashboards/reload" # Webhook URL to trigger reload
+          resources: # Resource requests and limits
+            requests:
+              cpu: "50m" # CPU request
+              memory: "50Mi" # Memory request
+            limits:
+              cpu: "100m" # CPU limit
+              memory: "100Mi" # Memory limit
+          volumeMounts: # Volume mounts
+            - name: dashboards-providers # Volume name
+              mountPath: /etc/grafana/provisioning/dashboards # Mount path
+            - name: dashboards-system # Volume name
+              mountPath: /etc/grafana/provisioning/dashboards/system # Mount path
+      volumes: # Volumes
+        - name: config # Volume name
+          configMap:
+            name: grafana-config # ConfigMap name
+        - name: datasources # Volume name
+          configMap:
+            name: grafana-datasources # ConfigMap name
+        - name: dashboards-providers # Volume name
+          configMap:
+            name: grafana-dashboards-providers # ConfigMap name
+        - name: dashboards-system # Volume name
+          configMap:
+            name: grafana-dashboards-system # ConfigMap name
+        - name: grafana-data # Volume name
+          persistentVolumeClaim:
+            claimName: grafana-data # PersistentVolumeClaim name
+      securityContext: # Security context for the pod
+        fsGroup: 472 # Group ID for file system access
+        runAsUser: 472 # User ID to run the container
+        runAsNonRoot: True # Ensure the container runs as a non-root user
+      nodeSelector: # Node selector to schedule pods on specific nodes
+        role: monitoring # Schedule on nodes with the 'monitoring' role
+
+---
+apiVersion: v1 # Kubernetes API version
+kind: Service # Type of Kubernetes resource
+metadata:
+  name: grafana # Name of the Service
+  namespace: monitoring # Namespace where the Service will be created
+  labels: # Labels to identify and organize the Service
+    app: grafana # Application name
+    component: monitoring # Component name
+    part-of: freight-optimization # Part of the freight-optimization application
+  annotations: # Annotations for the Service
+    prometheus.io/scrape: "true" # Enable Prometheus scraping
+    prometheus.io/port: "3000" # Prometheus port
+spec:
+  type: ClusterIP # Service type
+  ports:
+    - name: http # Port name
+      port: 3000 # Service port
+      targetPort: 3000 # Target port on the pod
+      protocol: TCP # Protocol
+  selector:
+    app: grafana # Selector to match pods managed by this Service
+
+---
+apiVersion: v1 # Kubernetes API version
+kind: PersistentVolumeClaim # Type of Kubernetes resource
+metadata:
+  name: grafana-data # Name of the PersistentVolumeClaim
+  namespace: monitoring # Namespace where the PersistentVolumeClaim will be created
+  labels: # Labels to identify and organize the PersistentVolumeClaim
+    app: grafana # Application name
+    component: monitoring # Component name
+    part-of: freight-optimization # Part of the freight-optimization application
+spec:
+  accessModes:
+    - ReadWriteOnce # Access mode
+  resources:
+    requests:
+      storage: 10Gi # Storage request
+  storageClassName: standard # Storage class name
