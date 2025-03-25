@@ -1,0 +1,451 @@
+# Development environment specific values for the AI-driven Freight Optimization Platform
+# This file overrides default values in values.yaml with development-specific configurations
+
+# Global configurations
+global:
+  environment: development
+  region: us-east-1
+  domain: dev.freightoptimization.com
+  logLevel: debug
+  enableSwagger: true
+
+# Service configurations with reduced resources and replica counts
+apiGateway:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: debug
+    corsOrigin: "*"
+    rateLimitMax: "200"
+    rateLimitWindowMs: "60000"
+    swaggerEnabled: "true"
+
+authService:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 2
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi
+  config:
+    logLevel: debug
+    tokenExpirationSeconds: "86400"
+    refreshTokenExpirationDays: "30"
+    passwordHashRounds: "10"
+    swaggerEnabled: "true"
+
+loadMatchingService:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: debug
+    reservationTimeoutSeconds: "300"
+    matchScoreThreshold: "30"
+    swaggerEnabled: "true"
+
+driverService:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: debug
+    hosUpdateIntervalMinutes: "5"
+    swaggerEnabled: "true"
+
+loadService:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: debug
+    swaggerEnabled: "true"
+    s3Bucket: "freight-dev-documents"
+    s3Region: "us-east-1"
+
+trackingService:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: debug
+    positionUpdateIntervalSeconds: "30"
+    historicalPositionRetentionDays: "30"
+    swaggerEnabled: "true"
+
+optimizationEngine:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 2
+  resources:
+    requests:
+      cpu: 200m
+      memory: 1Gi
+    limits:
+      cpu: 400m
+      memory: 2Gi
+  config:
+    logLevel: debug
+    optimizationIntervalMinutes: "5"
+    modelUpdateIntervalHours: "24"
+    modelRegistryPath: "s3://freight-dev-models"
+    sagemakerEndpoint: "dev-optimization-endpoint"
+    swaggerEnabled: "true"
+
+gamificationService:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 2
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi
+  config:
+    logLevel: debug
+    leaderboardUpdateIntervalMinutes: "15"
+    achievementCheckIntervalMinutes: "15"
+    swaggerEnabled: "true"
+
+marketIntelligenceService:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: debug
+    rateUpdateIntervalMinutes: "30"
+    forecastUpdateIntervalHours: "4"
+    swaggerEnabled: "true"
+
+notificationService:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 2
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi
+  config:
+    logLevel: debug
+    emailProvider: "sendgrid"
+    smsProvider: "twilio"
+    pushProvider: "firebase"
+    notificationRetentionDays: "30"
+    swaggerEnabled: "true"
+    firebaseProjectId: "freight-optimization-dev"
+    emailFromAddress: "dev-notifications@freightoptimization.com"
+    emailFromName: "Freight Optimization Platform (Dev)"
+
+integrationService:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: debug
+    eldSyncIntervalMinutes: "5"
+    tmsSyncIntervalMinutes: "15"
+    swaggerEnabled: "true"
+
+eventBus:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi
+  config:
+    logLevel: debug
+    schemaValidationEnabled: "true"
+
+dataService:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: debug
+    reportGenerationConcurrency: "2"
+    dataRetentionDays: "90"
+    swaggerEnabled: "true"
+
+cacheService:
+  replicaCount: 1
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 2
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi
+  config:
+    logLevel: debug
+    defaultTtlSeconds: "3600"
+
+# Database configurations with reduced resources
+postgresql:
+  primary:
+    persistence:
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 400m
+        memory: 1Gi
+  readReplicas:
+    replicaCount: 0
+
+timescaledb:
+  persistence:
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi
+
+redis:
+  master:
+    persistence:
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+  replica:
+    replicaCount: 1
+    persistence:
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+
+mongodb:
+  replicaCount: 1
+  persistence:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+elasticsearch:
+  master:
+    replicaCount: 1
+    heapSize: "512m"
+    persistence:
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1Gi
+      limits:
+        cpu: 200m
+        memory: 1.5Gi
+  data:
+    replicaCount: 1
+    heapSize: "1g"
+    persistence:
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 2Gi
+      limits:
+        cpu: 400m
+        memory: 3Gi
+  coordinating:
+    replicaCount: 1
+    heapSize: "512m"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1Gi
+      limits:
+        cpu: 200m
+        memory: 1.5Gi
+  ingest:
+    enabled: false
+
+kafka:
+  replicaCount: 1
+  persistence:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi
+  zookeeper:
+    replicaCount: 1
+    persistence:
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+
+# Monitoring configurations with reduced resources
+prometheus:
+  server:
+    retention: "5d"
+    persistentVolume:
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        cpu: 200m
+        memory: 1Gi
+  alertmanager:
+    persistentVolume:
+      size: 2Gi
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+
+grafana:
+  persistence:
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi
+
+# Ingress configuration for development environment
+ingress:
+  hosts:
+    - host: dev.freightoptimization.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: api-gateway
+          port: 80
+  tls:
+    - secretName: freight-platform-dev-tls
+      hosts:
+        - dev.freightoptimization.com
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+
+# Persistence configuration
+persistence:
+  storageClass: standard
+  accessMode: ReadWriteOnce
+
+# Security configuration - relaxed for development
+security:
+  networkPolicies:
+    enabled: false
+  podSecurityPolicies:
+    enabled: false
