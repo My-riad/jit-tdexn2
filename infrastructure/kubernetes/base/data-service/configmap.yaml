@@ -1,0 +1,187 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-service-config
+  namespace: default
+  labels:
+    app: data-service
+    component: data-service
+    part-of: freight-optimization
+  annotations:
+    description: "Configuration for the Data Service of the AI-driven Freight Optimization Platform"
+data:
+  LOG_LEVEL: "info"
+  DATA_WAREHOUSE_HOST: "timescaledb"
+  DATA_WAREHOUSE_PORT: "5432"
+  DATA_WAREHOUSE_DB: "freight_data_warehouse"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  ANALYTICS_CACHE_TTL: "3600"
+  ANALYTICS_CACHE_ENABLED: "true"
+  MAX_EXPORT_ROWS: "100000"
+  EXPORT_STORAGE_TYPE: "s3"
+  EXPORT_BASE_PATH: "/tmp/exports"
+  EXPORT_EXPIRY_DAYS: "7"
+  EXPORT_BASE_URL: "/api/v1/data/exports/download"
+  AWS_REGION: "us-east-1"
+  S3_BUCKET: "freight-optimization-exports"
+  S3_PATH_PREFIX: "exports/"
+  REPORT_TEMPLATE_PATH: "/usr/src/app/templates"
+  ENABLE_SCHEDULED_REPORTS: "true"
+  SCHEDULED_REPORTS_TIMEZONE: "UTC"
+  CLEANUP_INTERVAL_HOURS: "24"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-service-templates
+  namespace: default
+  labels:
+    app: data-service
+    component: data-service
+    part-of: freight-optimization
+  annotations:
+    description: "Report templates for the Data Service of the AI-driven Freight Optimization Platform"
+data:
+  efficiency-report-template.json: |
+    {
+      "name": "Efficiency Report",
+      "type": "EFFICIENCY",
+      "isDefault": true,
+      "sections": [
+        {
+          "title": "Network Efficiency Overview",
+          "visualizations": [
+            {
+              "type": "line-chart",
+              "title": "Network Efficiency Trend",
+              "queryId": "efficiency-trend"
+            },
+            {
+              "type": "gauge-chart",
+              "title": "Current Efficiency Score",
+              "queryId": "current-efficiency-score"
+            }
+          ]
+        },
+        {
+          "title": "Empty Miles Reduction",
+          "visualizations": [
+            {
+              "type": "bar-chart",
+              "title": "Empty Miles Reduction by Region",
+              "queryId": "empty-miles-by-region"
+            }
+          ]
+        },
+        {
+          "title": "Smart Hub Utilization",
+          "visualizations": [
+            {
+              "type": "pie-chart",
+              "title": "Smart Hub Usage Distribution",
+              "queryId": "smart-hub-usage"
+            }
+          ]
+        }
+      ]
+    }
+  financial-report-template.json: |
+    {
+      "name": "Financial Report",
+      "type": "FINANCIAL",
+      "isDefault": true,
+      "sections": [
+        {
+          "title": "Revenue Summary",
+          "visualizations": [
+            {
+              "type": "line-chart",
+              "title": "Revenue Trend",
+              "queryId": "revenue-trend"
+            },
+            {
+              "type": "bar-chart",
+              "title": "Revenue by Region",
+              "queryId": "revenue-by-region"
+            }
+          ]
+        },
+        {
+          "title": "Cost Analysis",
+          "visualizations": [
+            {
+              "type": "pie-chart",
+              "title": "Cost Distribution",
+              "queryId": "cost-distribution"
+            }
+          ]
+        }
+      ]
+    }
+  driver-performance-template.json: |
+    {
+      "name": "Driver Performance Report",
+      "type": "DRIVER_PERFORMANCE",
+      "isDefault": true,
+      "sections": [
+        {
+          "title": "Driver Efficiency Scores",
+          "visualizations": [
+            {
+              "type": "bar-chart",
+              "title": "Top Performing Drivers",
+              "queryId": "top-drivers"
+            },
+            {
+              "type": "histogram",
+              "title": "Driver Score Distribution",
+              "queryId": "driver-score-distribution"
+            }
+          ]
+        },
+        {
+          "title": "On-Time Performance",
+          "visualizations": [
+            {
+              "type": "line-chart",
+              "title": "On-Time Delivery Trend",
+              "queryId": "on-time-delivery-trend"
+            }
+          ]
+        }
+      ]
+    }
+  fleet-utilization-template.json: |
+    {
+      "name": "Fleet Utilization Report",
+      "type": "FLEET_UTILIZATION",
+      "isDefault": true,
+      "sections": [
+        {
+          "title": "Fleet Utilization Overview",
+          "visualizations": [
+            {
+              "type": "gauge-chart",
+              "title": "Overall Fleet Utilization",
+              "queryId": "fleet-utilization"
+            },
+            {
+              "type": "bar-chart",
+              "title": "Utilization by Vehicle Type",
+              "queryId": "utilization-by-vehicle-type"
+            }
+          ]
+        },
+        {
+          "title": "Asset Optimization",
+          "visualizations": [
+            {
+              "type": "heat-map",
+              "title": "Geographic Asset Distribution",
+              "queryId": "asset-distribution"
+            }
+          ]
+        }
+      ]
+    }
