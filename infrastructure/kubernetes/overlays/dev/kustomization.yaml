@@ -1,0 +1,159 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: development-overlay
+
+resources:
+  - ../../base/api-gateway
+  - ../../base/auth-service
+  - ../../base/cache-service
+  - ../../base/data-service
+  - ../../base/driver-service
+  - ../../base/event-bus
+  - ../../base/gamification-service
+  - ../../base/integration-service
+  - ../../base/load-matching-service
+  - ../../base/load-service
+  - ../../base/market-intelligence-service
+  - ../../base/notification-service
+  - ../../base/optimization-engine
+  - ../../base/tracking-service
+  - ../../base/ingress
+  - ../../base/monitoring
+
+namespace: freight-dev
+
+commonLabels:
+  environment: development
+  managed-by: kustomize
+  part-of: freight-optimization
+
+commonAnnotations:
+  environment: development
+  contact: dev-team@freight-optimization.com
+  description: Development environment for the AI-driven Freight Optimization Platform
+
+patches:
+  - path: patches/small-replicas.yaml
+    target:
+      kind: Deployment
+      labelSelector: part-of=freight-optimization
+  - path: patches/small-resources.yaml
+    target:
+      kind: Deployment
+      labelSelector: part-of=freight-optimization
+
+configMapGenerator:
+  - name: api-gateway-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=debug
+      - CORS_ORIGIN=https://dev.freight-optimization.com
+      - RATE_LIMIT_MAX=200
+      - RATE_LIMIT_WINDOW_MS=60000
+      - SWAGGER_ENABLED=true
+  - name: load-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=debug
+      - ENABLE_SWAGGER=true
+      - DB_HOST=postgres-dev
+      - DB_PORT=5432
+      - DB_NAME=load_service_dev
+      - KAFKA_BROKERS=kafka-dev:9092
+      - REDIS_HOST=redis-dev
+      - REDIS_PORT=6379
+      - S3_BUCKET=freight-dev-documents
+      - S3_REGION=us-east-1
+  - name: driver-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=debug
+      - ENABLE_SWAGGER=true
+      - DB_HOST=postgres-dev
+      - DB_PORT=5432
+      - DB_NAME=driver_service_dev
+      - KAFKA_BROKERS=kafka-dev:9092
+      - REDIS_HOST=redis-dev
+      - REDIS_PORT=6379
+  - name: tracking-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=debug
+      - ENABLE_SWAGGER=true
+      - DB_HOST=timescaledb-dev
+      - DB_PORT=5432
+      - DB_NAME=tracking_service_dev
+      - KAFKA_BROKERS=kafka-dev:9092
+      - REDIS_HOST=redis-dev
+      - REDIS_PORT=6379
+  - name: optimization-engine-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=debug
+      - ENABLE_SWAGGER=true
+      - DB_HOST=postgres-dev
+      - DB_PORT=5432
+      - DB_NAME=optimization_engine_dev
+      - KAFKA_BROKERS=kafka-dev:9092
+      - REDIS_HOST=redis-dev
+      - REDIS_PORT=6379
+      - MODEL_REGISTRY_PATH=s3://freight-dev-models
+      - SAGEMAKER_ENDPOINT=dev-optimization-endpoint
+
+images:
+  - name: {{ .Values.image.repository }}/api-gateway
+    newName: freight-registry.dev/api-gateway
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/auth-service
+    newName: freight-registry.dev/auth-service
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/load-service
+    newName: freight-registry.dev/load-service
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/driver-service
+    newName: freight-registry.dev/driver-service
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/tracking-service
+    newName: freight-registry.dev/tracking-service
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/optimization-engine
+    newName: freight-registry.dev/optimization-engine
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/gamification-service
+    newName: freight-registry.dev/gamification-service
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/market-intelligence-service
+    newName: freight-registry.dev/market-intelligence-service
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/notification-service
+    newName: freight-registry.dev/notification-service
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/integration-service
+    newName: freight-registry.dev/integration-service
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/load-matching-service
+    newName: freight-registry.dev/load-matching-service
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/event-bus
+    newName: freight-registry.dev/event-bus
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/cache-service
+    newName: freight-registry.dev/cache-service
+    newTag: dev-latest
+  - name: {{ .Values.image.repository }}/data-service
+    newName: freight-registry.dev/data-service
+    newTag: dev-latest
+
+patchesStrategicMerge:
+  - overlays/api-gateway-dev.yaml
+  - overlays/ingress-dev.yaml
+  - overlays/monitoring-dev.yaml
+
+secretGenerator:
+  - name: dev-db-credentials
+    envs:
+      - secrets/db-credentials.env
+  - name: dev-api-keys
+    envs:
+      - secrets/api-keys.env
