@@ -1,0 +1,203 @@
+# Global prometheus configuration
+global:
+  scrape_interval: 15s      # How frequently to scrape targets
+  evaluation_interval: 15s  # How frequently to evaluate rules
+  external_labels:
+    environment: ${ENVIRONMENT}  # Dynamically set from environment variable
+    region: ${REGION}            # Dynamically set from environment variable
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+# Rule files to load
+rule_files:
+  - /etc/prometheus/rules/*.yml  # Loads all rule files including alert-rules.yml
+
+# Scrape configurations for monitoring various components
+scrape_configs:
+  # Kubernetes API server monitoring
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+      - role: endpoints
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels: ['__meta_kubernetes_namespace', '__meta_kubernetes_service_name', '__meta_kubernetes_endpoint_port_name']
+        action: keep
+        regex: default;kubernetes;https
+
+  # Kubernetes node monitoring
+  - job_name: 'kubernetes-nodes'
+    kubernetes_sd_configs:
+      - role: node
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+
+  # Kubernetes pod monitoring with annotations
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: ['__meta_kubernetes_pod_annotation_prometheus_io_scrape']
+        action: keep
+        regex: true
+      - source_labels: ['__meta_kubernetes_pod_annotation_prometheus_io_path']
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: ['__address__', '__meta_kubernetes_pod_annotation_prometheus_io_port']
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: '$1:$2'
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: ['__meta_kubernetes_namespace']
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: ['__meta_kubernetes_pod_name']
+        action: replace
+        target_label: kubernetes_pod_name
+
+  # Kubernetes service endpoint monitoring
+  - job_name: 'kubernetes-service-endpoints'
+    kubernetes_sd_configs:
+      - role: endpoints
+    relabel_configs:
+      - source_labels: ['__meta_kubernetes_service_annotation_prometheus_io_scrape']
+        action: keep
+        regex: true
+      - source_labels: ['__meta_kubernetes_service_annotation_prometheus_io_scheme']
+        action: replace
+        target_label: __scheme__
+        regex: (https?)
+      - source_labels: ['__meta_kubernetes_service_annotation_prometheus_io_path']
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: ['__address__', '__meta_kubernetes_service_annotation_prometheus_io_port']
+        action: replace
+        target_label: __address__
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: '$1:$2'
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels: ['__meta_kubernetes_namespace']
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: ['__meta_kubernetes_service_name']
+        action: replace
+        target_label: kubernetes_service_name
+
+  # API Gateway monitoring
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:3000']
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Load Matching Service monitoring
+  - job_name: 'load-matching-service'
+    static_configs:
+      - targets: ['load-matching-service:3000']
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Optimization Engine monitoring
+  - job_name: 'optimization-engine'
+    static_configs:
+      - targets: ['optimization-engine:3000']
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Driver Service monitoring
+  - job_name: 'driver-service'
+    static_configs:
+      - targets: ['driver-service:3000']
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Load Service monitoring
+  - job_name: 'load-service'
+    static_configs:
+      - targets: ['load-service:3000']
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Tracking Service monitoring
+  - job_name: 'tracking-service'
+    static_configs:
+      - targets: ['tracking-service:3000']
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Gamification Service monitoring
+  - job_name: 'gamification-service'
+    static_configs:
+      - targets: ['gamification-service:3000']
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Market Intelligence Service monitoring
+  - job_name: 'market-intelligence-service'
+    static_configs:
+      - targets: ['market-intelligence-service:3000']
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Notification Service monitoring
+  - job_name: 'notification-service'
+    static_configs:
+      - targets: ['notification-service:3000']
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Database metrics monitoring (PostgreSQL, Redis, MongoDB)
+  - job_name: 'database-metrics'
+    static_configs:
+      - targets: ['postgres-exporter:9187', 'redis-exporter:9121', 'mongodb-exporter:9216']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Kafka metrics monitoring
+  - job_name: 'kafka-metrics'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Node Exporter for host-level metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus           # Data storage location
+    retention_time: 15d         # Data retention period
+
+# Web server configuration
+web:
+  listen_address: '0.0.0.0:9090'  # Listen on all interfaces, port 9090
+  external_url: ${PROMETHEUS_EXTERNAL_URL}  # Set from environment variable
+  page_title: 'Freight Optimization Platform Prometheus'  # Custom title for UI
