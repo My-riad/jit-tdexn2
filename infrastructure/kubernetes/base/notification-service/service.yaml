@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: default
+  labels:
+    app: notification-service
+    component: notification-service
+    part-of: freight-optimization
+  annotations:
+    description: "Service for the Notification Service that delivers alerts, messages, and updates to users across multiple channels"
+spec:
+  type: ClusterIP
+  selector:
+    app: notification-service
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3010
+      protocol: TCP
+    - name: websocket
+      port: 3001
+      targetPort: 3011
+      protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
