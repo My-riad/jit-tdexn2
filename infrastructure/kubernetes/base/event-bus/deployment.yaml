@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-bus
+  namespace: default
+  labels:
+    app: event-bus
+    component: event-bus
+    part-of: freight-optimization
+  annotations:
+    description: "Event Bus service for the AI-driven Freight Optimization Platform"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: event-bus
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: event-bus
+        component: event-bus
+        part-of: freight-optimization
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "3001"
+    spec:
+      containers:
+      - name: event-bus
+        image: "{{ .Values.image.repository }}/event-bus:{{ .Values.image.tag | default 'latest' }}"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 3001
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: EVENT_BUS_PORT
+          value: "3001"
+        - name: EVENT_BUS_HOST
+          value: "0.0.0.0"
+        - name: EVENT_BUS_SERVICE_NAME
+          value: "event-bus-service"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "{{ .Values.kafka.bootstrapServers }}"
+        - name: KAFKA_CLIENT_ID
+          value: "event-bus-service"
+        - name: SCHEMA_REGISTRY_URL
+          value: "{{ .Values.kafka.schemaRegistry.url }}"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: TOPIC_PREFIX
+          value: "freight-optimization"
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 12
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      terminationGracePeriodSeconds: 60
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - event-bus
+              topologyKey: kubernetes.io/hostname
