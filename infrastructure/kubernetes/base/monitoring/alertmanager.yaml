@@ -1,0 +1,647 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+    component: monitoring
+    part-of: freight-optimization
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+  labels:
+    app: alertmanager
+    component: monitoring
+    part-of: freight-optimization
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      slack_api_url: '${SLACK_API_URL}'
+      pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+      smtp_smarthost: '${SMTP_SMARTHOST}'
+      smtp_from: '${SMTP_FROM}'
+      smtp_auth_username: '${SMTP_USERNAME}'
+      smtp_auth_password: '${SMTP_PASSWORD}'
+      smtp_require_tls: true
+
+    templates:
+      - '/etc/alertmanager/templates/*.tmpl'
+
+    route:
+      receiver: 'default'
+      group_by: ['alertname', 'category', 'severity']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      routes:
+        - match:
+            severity: critical
+          receiver: 'pagerduty'
+          continue: true
+          group_wait: 30s
+          group_interval: 1m
+          repeat_interval: 30m
+        - match:
+            category: kubernetes
+          receiver: 'platform-team'
+          continue: true
+        - match:
+            category: system
+          receiver: 'platform-team'
+          continue: true
+        - match:
+            category: resources
+          receiver: 'platform-team'
+          continue: true
+        - match:
+            category: network
+          receiver: 'platform-team'
+          continue: true
+        - match:
+            category: database
+          receiver: 'database-team'
+          continue: true
+        - match:
+            category: messaging
+          receiver: 'platform-team'
+          continue: true
+        - match:
+            category: availability
+          receiver: 'operations-team'
+          continue: true
+        - match:
+            category: security
+          receiver: 'security-team'
+          continue: true
+        - match:
+            category: backup
+          receiver: 'platform-team'
+          continue: true
+        - match:
+            category: monitoring
+          receiver: 'platform-team'
+          continue: true
+        - match:
+            category: api
+            service: api-gateway
+          receiver: 'api-team'
+          continue: true
+        - match:
+            service: load-matching-service
+          receiver: 'load-matching-team'
+          continue: true
+        - match:
+            service: optimization-engine
+          receiver: 'optimization-team'
+          continue: true
+        - match:
+            service: driver-service
+          receiver: 'driver-team'
+          continue: true
+        - match:
+            service: load-service
+          receiver: 'load-team'
+          continue: true
+        - match:
+            service: tracking-service
+          receiver: 'tracking-team'
+          continue: true
+        - match:
+            service: gamification-service
+          receiver: 'gamification-team'
+          continue: true
+        - match:
+            service: market-intelligence-service
+          receiver: 'market-team'
+          continue: true
+        - match:
+            service: notification-service
+          receiver: 'notification-team'
+          continue: true
+        - match:
+            category: business
+          receiver: 'business-team'
+          continue: true
+
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'instance']
+      - source_match:
+          category: 'availability'
+        target_match_re:
+          category: 'performance|errors'
+        equal: ['instance', 'service']
+
+    receivers:
+      - name: 'default'
+        slack_configs:
+          - channel: '#alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+            actions:
+              - type: button
+                text: 'Runbook 📚'
+                url: '{{ (index .Alerts 0).Annotations.runbook }}'
+              - type: button
+                text: 'Dashboard 📊'
+                url: '{{ (index .Alerts 0).Annotations.dashboard }}'
+              - type: button
+                text: 'Silence 🔕'
+                url: '{{ template "slack.default.silencelink" . }}'
+        email_configs:
+          - to: 'alerts@freightoptimization.com'
+            send_resolved: true
+            html: '{{ template "email.default.html" . }}'
+            headers:
+              subject: '{{ template "email.default.subject" . }}'
+
+      - name: 'pagerduty'
+        pagerduty_configs:
+          - service_key: '${PAGERDUTY_SERVICE_KEY}'
+            send_resolved: true
+            description: '{{ template "pagerduty.default.description" . }}'
+            severity: '{{ if eq .GroupLabels.severity "critical" }}critical{{ else }}warning{{ end }}'
+            details:
+              firing: '{{ template "pagerduty.default.firing" . }}'
+              num_firing: '{{ .Alerts.Firing | len }}'
+              resolved: '{{ template "pagerduty.default.resolved" . }}'
+              num_resolved: '{{ .Alerts.Resolved | len }}'
+              instance: '{{ if .CommonLabels.instance }}{{ .CommonLabels.instance }}{{ else }}N/A{{ end }}'
+              service: '{{ if .CommonLabels.service }}{{ .CommonLabels.service }}{{ else }}N/A{{ end }}'
+        slack_configs:
+          - channel: '#critical-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+
+      - name: 'platform-team'
+        slack_configs:
+          - channel: '#platform-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'platform-team@freightoptimization.com'
+            send_resolved: true
+
+      - name: 'database-team'
+        slack_configs:
+          - channel: '#database-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'database-team@freightoptimization.com'
+            send_resolved: true
+
+      - name: 'operations-team'
+        slack_configs:
+          - channel: '#ops-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'operations@freightoptimization.com'
+            send_resolved: true
+
+      - name: 'security-team'
+        slack_configs:
+          - channel: '#security-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'security@freightoptimization.com'
+            send_resolved: true
+        pagerduty_configs:
+          - service_key: '${PAGERDUTY_SECURITY_KEY}'
+            send_resolved: true
+
+      - name: 'api-team'
+        slack_configs:
+          - channel: '#api-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'api-team@freightoptimization.com'
+            send_resolved: true
+
+      - name: 'load-matching-team'
+        slack_configs:
+          - channel: '#load-matching-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'load-matching@freightoptimization.com'
+            send_resolved: true
+
+      - name: 'optimization-team'
+        slack_configs:
+          - channel: '#optimization-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'optimization@freightoptimization.com'
+            send_resolved: true
+
+      - name: 'driver-team'
+        slack_configs:
+          - channel: '#driver-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'driver-service@freightoptimization.com'
+            send_resolved: true
+
+      - name: 'load-team'
+        slack_configs:
+          - channel: '#load-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'load-service@freightoptimization.com'
+            send_resolved: true
+
+      - name: 'tracking-team'
+        slack_configs:
+          - channel: '#tracking-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'tracking@freightoptimization.com'
+            send_resolved: true
+
+      - name: 'gamification-team'
+        slack_configs:
+          - channel: '#gamification-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'gamification@freightoptimization.com'
+            send_resolved: true
+
+      - name: 'market-team'
+        slack_configs:
+          - channel: '#market-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'market-intelligence@freightoptimization.com'
+            send_resolved: true
+
+      - name: 'notification-team'
+        slack_configs:
+          - channel: '#notification-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'notification@freightoptimization.com'
+            send_resolved: true
+
+      - name: 'business-team'
+        slack_configs:
+          - channel: '#business-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: '{{ template "slack.default.footer" . }}'
+        email_configs:
+          - to: 'business@freightoptimization.com'
+            send_resolved: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-templates
+  namespace: monitoring
+  labels:
+    app: alertmanager
+    component: monitoring
+    part-of: freight-optimization
+data:
+  default.tmpl: |
+    {{ define "slack.default.title" }}
+      [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+    {{ end }}
+
+    {{ define "slack.default.text" }}
+      {{ range .Alerts }}
+        *Alert:* {{ .Annotations.summary }}
+        *Description:* {{ .Annotations.description }}
+        *Impact:* {{ .Annotations.impact }}
+        *Action:* {{ .Annotations.action }}
+        *Details:*
+          {{ range .Labels.SortedPairs }} • *{{ .Name }}:* `{{ .Value }}`
+          {{ end }}
+      {{ end }}
+    {{ end }}
+
+    {{ define "slack.default.footer" }}
+      {{ if .CommonLabels.service }}Service: {{ .CommonLabels.service }} | {{ end }}
+      {{ if .CommonLabels.instance }}Instance: {{ .CommonLabels.instance }} | {{ end }}
+      Alertmanager: {{ template "slack.default.alertmanager" . }}
+    {{ end }}
+
+    {{ define "slack.default.alertmanager" }}{{ .ExternalURL }}/#/alerts?receiver={{ .Receiver }}{{ end }}
+
+    {{ define "slack.default.silencelink" }}{{ .ExternalURL }}/#/silences/new?filter=%7B{{ range .CommonLabels.SortedPairs }}%22{{ .Name }}%22%3A%22{{ .Value }}%22%2C{{ end }}%7D{{ end }}
+
+    {{ define "email.default.subject" }}
+      [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+    {{ end }}
+
+    {{ define "email.default.html" }}
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>{{ template "email.default.subject" . }}</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 20px;
+          color: #333;
+        }
+        h2 {
+          margin-top: 0;
+          color: {{ if eq .Status "firing" }}#cc0000{{ else }}#009900{{ end }};
+        }
+        .alert {
+          margin-bottom: 20px;
+          padding: 15px;
+          border-left: 5px solid {{ if eq .Status "firing" }}#cc0000{{ else }}#009900{{ end }};
+          background-color: #f9f9f9;
+        }
+        .label {
+          display: inline-block;
+          padding: 2px 5px;
+          background-color: #eee;
+          border-radius: 3px;
+          margin-right: 5px;
+          margin-bottom: 5px;
+        }
+      </style>
+    </head>
+    <body>
+      <h2>{{ template "email.default.subject" . }}</h2>
+      
+      {{ range .Alerts }}
+      <div class="alert">
+        <h3>{{ .Annotations.summary }}</h3>
+        <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+        <p><strong>Impact:</strong> {{ .Annotations.impact }}</p>
+        <p><strong>Action:</strong> {{ .Annotations.action }}</p>
+        
+        <h4>Labels:</h4>
+        <div>
+          {{ range .Labels.SortedPairs }}
+          <span class="label">{{ .Name }}: {{ .Value }}</span>
+          {{ end }}
+        </div>
+      </div>
+      {{ end }}
+      
+      <p>
+        <a href="{{ .ExternalURL }}">View in Alertmanager</a>
+      </p>
+    </body>
+    </html>
+    {{ end }}
+
+    {{ define "pagerduty.default.description" }}
+      [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+    {{ end }}
+
+    {{ define "pagerduty.default.firing" }}
+      {{ range .Alerts.Firing }}
+        Alert: {{ .Annotations.summary }}
+        Description: {{ .Annotations.description }}
+        Impact: {{ .Annotations.impact }}
+        Action: {{ .Annotations.action }}
+      {{ end }}
+    {{ end }}
+
+    {{ define "pagerduty.default.resolved" }}
+      {{ range .Alerts.Resolved }}
+        Alert: {{ .Annotations.summary }}
+      {{ end }}
+    {{ end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+    component: monitoring
+    part-of: freight-optimization
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+        component: monitoring
+        part-of: freight-optimization
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9093"
+    spec:
+      serviceAccountName: alertmanager
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.25.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--config.file=/etc/alertmanager/alertmanager.yml"
+            - "--storage.path=/alertmanager"
+            - "--web.external-url=$(ALERTMANAGER_EXTERNAL_URL)"
+            - "--web.route-prefix=/"
+          ports:
+            - name: http
+              containerPort: 9093
+              protocol: TCP
+          env:
+            - name: ALERTMANAGER_EXTERNAL_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: alertmanager_url
+            - name: SLACK_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: alertmanager-secrets
+                  key: slack_api_url
+            - name: PAGERDUTY_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: alertmanager-secrets
+                  key: pagerduty_service_key
+            - name: PAGERDUTY_SECURITY_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: alertmanager-secrets
+                  key: pagerduty_security_key
+            - name: SMTP_SMARTHOST
+              valueFrom:
+                secretKeyRef:
+                  name: alertmanager-secrets
+                  key: smtp_smarthost
+            - name: SMTP_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: alertmanager-secrets
+                  key: smtp_from
+            - name: SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: alertmanager-secrets
+                  key: smtp_username
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: alertmanager-secrets
+                  key: smtp_password
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/alertmanager
+            - name: templates-volume
+              mountPath: /etc/alertmanager/templates
+            - name: alertmanager-data
+              mountPath: /alertmanager
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+        - name: config-reloader
+          image: jimmidyson/configmap-reload:v0.7.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--volume-dir=/etc/alertmanager"
+            - "--webhook-url=http://localhost:9093/-/reload"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 50Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/alertmanager
+            - name: templates-volume
+              mountPath: /etc/alertmanager/templates
+      volumes:
+        - name: config-volume
+          configMap:
+            name: alertmanager-config
+        - name: templates-volume
+          configMap:
+            name: alertmanager-templates
+        - name: alertmanager-data
+          persistentVolumeClaim:
+            claimName: alertmanager-data
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 65534
+        runAsNonRoot: true
+      nodeSelector:
+        role: monitoring
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+    component: monitoring
+    part-of: freight-optimization
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9093"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 9093
+      targetPort: 9093
+      protocol: TCP
+  selector:
+    app: alertmanager
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: alertmanager-data
+  namespace: monitoring
+  labels:
+    app: alertmanager
+    component: monitoring
+    part-of: freight-optimization
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: standard
