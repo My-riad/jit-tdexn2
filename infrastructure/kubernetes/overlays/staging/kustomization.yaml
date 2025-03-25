@@ -1,0 +1,213 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: staging-overlay
+
+# Base resources to include
+resources:
+- ../../base/api-gateway
+- ../../base/auth-service
+- ../../base/cache-service
+- ../../base/data-service
+- ../../base/driver-service
+- ../../base/event-bus
+- ../../base/gamification-service
+- ../../base/integration-service
+- ../../base/load-matching-service
+- ../../base/load-service
+- ../../base/market-intelligence-service
+- ../../base/notification-service
+- ../../base/optimization-engine
+- ../../base/tracking-service
+- ../../base/ingress
+- ../../base/monitoring
+- ../../base/networking
+
+# Namespace for the staging environment
+namespace: freight-staging
+
+# Common labels to apply to all resources
+commonLabels:
+  environment: staging
+  managed-by: kustomize
+  part-of: freight-optimization
+
+# Common annotations to apply to all resources
+commonAnnotations:
+  environment: staging
+  contact: devops-team@freight-optimization.com
+  description: Staging environment for the AI-driven Freight Optimization Platform
+
+# Patches to apply to resources
+patches:
+- path: patches/medium-replicas.yaml
+  target:
+    kind: Deployment
+    labelSelector: part-of=freight-optimization
+- path: patches/medium-resources.yaml
+  target:
+    kind: Deployment
+    labelSelector: part-of=freight-optimization
+
+# ConfigMap generators for service configurations
+configMapGenerator:
+- name: api-gateway-config
+  behavior: merge
+  literals:
+  - LOG_LEVEL=info
+  - CORS_ORIGIN=https://staging.freightoptimization.com
+  - RATE_LIMIT_MAX=150
+  - RATE_LIMIT_WINDOW_MS=60000
+  - SWAGGER_ENABLED=true
+- name: load-service-config
+  behavior: merge
+  literals:
+  - LOG_LEVEL=info
+  - ENABLE_SWAGGER=true
+  - DB_HOST=postgres-staging
+  - DB_PORT=5432
+  - DB_NAME=load_service_staging
+  - KAFKA_BROKERS=kafka-staging:9092
+  - REDIS_HOST=redis-staging
+  - REDIS_PORT=6379
+  - S3_BUCKET=freight-staging-documents
+  - S3_REGION=us-east-1
+- name: driver-service-config
+  behavior: merge
+  literals:
+  - LOG_LEVEL=info
+  - ENABLE_SWAGGER=true
+  - DB_HOST=postgres-staging
+  - DB_PORT=5432
+  - DB_NAME=driver_service_staging
+  - KAFKA_BROKERS=kafka-staging:9092
+  - REDIS_HOST=redis-staging
+  - REDIS_PORT=6379
+- name: tracking-service-config
+  behavior: merge
+  literals:
+  - LOG_LEVEL=info
+  - ENABLE_SWAGGER=true
+  - DB_HOST=timescaledb-staging
+  - DB_PORT=5432
+  - DB_NAME=tracking_service_staging
+  - KAFKA_BROKERS=kafka-staging:9092
+  - REDIS_HOST=redis-staging
+  - REDIS_PORT=6379
+  - POSITION_UPDATE_INTERVAL_SECONDS=30
+- name: optimization-engine-config
+  behavior: merge
+  literals:
+  - LOG_LEVEL=info
+  - ENABLE_SWAGGER=true
+  - DB_HOST=postgres-staging
+  - DB_PORT=5432
+  - DB_NAME=optimization_engine_staging
+  - KAFKA_BROKERS=kafka-staging:9092
+  - REDIS_HOST=redis-staging
+  - REDIS_PORT=6379
+  - MODEL_REGISTRY_PATH=s3://freight-staging-models
+  - SAGEMAKER_ENDPOINT=staging-optimization-endpoint
+  - OPTIMIZATION_INTERVAL_MINUTES=5
+- name: gamification-service-config
+  behavior: merge
+  literals:
+  - LOG_LEVEL=info
+  - ENABLE_SWAGGER=true
+  - DB_HOST=postgres-staging
+  - DB_PORT=5432
+  - DB_NAME=gamification_service_staging
+  - KAFKA_BROKERS=kafka-staging:9092
+  - REDIS_HOST=redis-staging
+  - REDIS_PORT=6379
+- name: market-intelligence-service-config
+  behavior: merge
+  literals:
+  - LOG_LEVEL=info
+  - ENABLE_SWAGGER=true
+  - DB_HOST=postgres-staging
+  - DB_PORT=5432
+  - DB_NAME=market_intelligence_service_staging
+  - KAFKA_BROKERS=kafka-staging:9092
+  - REDIS_HOST=redis-staging
+  - REDIS_PORT=6379
+- name: notification-service-config
+  behavior: merge
+  literals:
+  - LOG_LEVEL=info
+  - ENABLE_SWAGGER=true
+  - KAFKA_BROKERS=kafka-staging:9092
+  - REDIS_HOST=redis-staging
+  - REDIS_PORT=6379
+  - FIREBASE_PROJECT_ID=freight-optimization-staging
+  - SENDGRID_API_VERSION=v3
+
+# Image transformations
+images:
+- name: {{ .Values.image.repository }}/api-gateway
+  newName: freight-registry.staging/api-gateway
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/auth-service
+  newName: freight-registry.staging/auth-service
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/load-service
+  newName: freight-registry.staging/load-service
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/driver-service
+  newName: freight-registry.staging/driver-service
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/tracking-service
+  newName: freight-registry.staging/tracking-service
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/optimization-engine
+  newName: freight-registry.staging/optimization-engine
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/gamification-service
+  newName: freight-registry.staging/gamification-service
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/market-intelligence-service
+  newName: freight-registry.staging/market-intelligence-service
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/notification-service
+  newName: freight-registry.staging/notification-service
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/integration-service
+  newName: freight-registry.staging/integration-service
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/load-matching-service
+  newName: freight-registry.staging/load-matching-service
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/event-bus
+  newName: freight-registry.staging/event-bus
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/cache-service
+  newName: freight-registry.staging/cache-service
+  newTag: rc-latest
+- name: {{ .Values.image.repository }}/data-service
+  newName: freight-registry.staging/data-service
+  newTag: rc-latest
+
+# Strategic merge patches
+patchesStrategicMerge:
+- overlays/api-gateway-staging.yaml
+- overlays/ingress-staging.yaml
+- overlays/monitoring-staging.yaml
+- overlays/hpa-staging.yaml
+
+# Secret generators
+secretGenerator:
+- name: staging-db-credentials
+  envs:
+  - secrets/db-credentials.env
+- name: staging-api-keys
+  envs:
+  - secrets/api-keys.env
+- name: staging-jwt-secret
+  envs:
+  - secrets/jwt-secret.env
+- name: staging-notification-credentials
+  envs:
+  - secrets/notification-credentials.env
+- name: staging-integration-credentials
+  envs:
+  - secrets/integration-credentials.env
