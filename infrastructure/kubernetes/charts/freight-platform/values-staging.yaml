@@ -1,0 +1,506 @@
+# Staging environment specific values for the AI-driven Freight Optimization Platform
+# This file overrides values from the default values.yaml for the staging environment
+
+# Global settings specific to staging environment
+global:
+  environment: staging
+  region: us-east-1
+  domain: staging.freightoptimization.com
+  logLevel: info
+  enableSwagger: true
+
+# API Gateway configuration for staging
+apiGateway:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi
+  config:
+    logLevel: info
+    corsOrigin: https://staging.freightoptimization.com,https://carrier-staging.freightoptimization.com,https://shipper-staging.freightoptimization.com
+    rateLimitMax: "500"
+    rateLimitWindowMs: "60000"
+    swaggerEnabled: "true"
+
+# Auth Service configuration for staging
+authService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 4
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: info
+    tokenExpirationSeconds: "3600"
+    refreshTokenExpirationDays: "30"
+    passwordHashRounds: "10"
+    swaggerEnabled: "true"
+
+# Load Matching Service configuration for staging
+loadMatchingService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi
+  config:
+    logLevel: info
+    reservationTimeoutSeconds: "300"
+    matchScoreThreshold: "40"
+    swaggerEnabled: "true"
+
+# Driver Service configuration for staging
+driverService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 4
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi
+  config:
+    logLevel: info
+    hosUpdateIntervalMinutes: "10"
+    swaggerEnabled: "true"
+
+# Load Service configuration for staging
+loadService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 4
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi
+  config:
+    logLevel: info
+    swaggerEnabled: "true"
+    s3Bucket: "freight-staging-documents"
+    s3Region: "us-east-1"
+
+# Tracking Service configuration for staging
+trackingService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 6
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi
+  config:
+    logLevel: info
+    positionUpdateIntervalSeconds: "30"
+    historicalPositionRetentionDays: "60"
+    swaggerEnabled: "true"
+
+# Optimization Engine configuration for staging
+optimizationEngine:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 4
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 1
+      memory: 4Gi
+  config:
+    logLevel: info
+    optimizationIntervalMinutes: "5"
+    modelUpdateIntervalHours: "24"
+    modelRegistryPath: "s3://freight-staging-models"
+    sagemakerEndpoint: "staging-optimization-endpoint"
+    swaggerEnabled: "true"
+
+# Gamification Service configuration for staging
+gamificationService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 4
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: info
+    leaderboardUpdateIntervalMinutes: "15"
+    achievementCheckIntervalMinutes: "15"
+    swaggerEnabled: "true"
+
+# Market Intelligence Service configuration for staging
+marketIntelligenceService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 4
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi
+  config:
+    logLevel: info
+    rateUpdateIntervalMinutes: "30"
+    forecastUpdateIntervalHours: "4"
+    swaggerEnabled: "true"
+
+# Notification Service configuration for staging
+notificationService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 4
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: info
+    emailProvider: "sendgrid"
+    smsProvider: "twilio"
+    pushProvider: "firebase"
+    notificationRetentionDays: "60"
+    swaggerEnabled: "true"
+    firebaseProjectId: "freight-optimization-staging"
+    emailFromAddress: "staging-notifications@freightoptimization.com"
+    emailFromName: "Freight Optimization Platform (Staging)"
+
+# Integration Service configuration for staging
+integrationService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 4
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi
+  config:
+    logLevel: info
+    eldSyncIntervalMinutes: "10"
+    tmsSyncIntervalMinutes: "15"
+    swaggerEnabled: "true"
+
+# Event Bus configuration for staging
+eventBus:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: info
+    schemaValidationEnabled: "true"
+
+# Data Service configuration for staging
+dataService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 4
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi
+  config:
+    logLevel: info
+    reportGenerationConcurrency: "3"
+    dataRetentionDays: "180"
+    swaggerEnabled: "true"
+
+# Cache Service configuration for staging
+cacheService:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 4
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  config:
+    logLevel: info
+    defaultTtlSeconds: "3600"
+
+# Database configurations for staging
+postgresql:
+  primary:
+    persistence:
+      size: 50Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 2Gi
+  readReplicas:
+    replicaCount: 1
+    persistence:
+      size: 50Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 2Gi
+
+timescaledb:
+  persistence:
+    size: 100Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+redis:
+  master:
+    persistence:
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 400m
+        memory: 1Gi
+  replica:
+    replicaCount: 1
+    persistence:
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 400m
+        memory: 1Gi
+
+mongodb:
+  replicaCount: 2
+  persistence:
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi
+
+elasticsearch:
+  master:
+    replicaCount: 2
+    heapSize: 512m
+    persistence:
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+      limits:
+        cpu: 400m
+        memory: 1.5Gi
+  data:
+    replicaCount: 2
+    heapSize: 1g
+    persistence:
+      size: 50Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1
+        memory: 3Gi
+  coordinating:
+    replicaCount: 2
+    heapSize: 512m
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+      limits:
+        cpu: 400m
+        memory: 1.5Gi
+  ingest:
+    enabled: true
+    replicaCount: 1
+    heapSize: 512m
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+      limits:
+        cpu: 400m
+        memory: 1.5Gi
+
+kafka:
+  replicaCount: 3
+  persistence:
+    size: 50Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  zookeeper:
+    replicaCount: 3
+    persistence:
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 400m
+        memory: 1Gi
+
+# Monitoring configurations for staging
+prometheus:
+  server:
+    retention: 15d
+    persistentVolume:
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+      limits:
+        cpu: 400m
+        memory: 2Gi
+  alertmanager:
+    persistentVolume:
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+
+grafana:
+  persistence:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+# Ingress configuration for staging
+ingress:
+  hosts:
+    - host: staging.freightoptimization.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: api-gateway
+          port: 80
+  tls:
+    - secretName: freight-platform-staging-tls
+      hosts:
+        - staging.freightoptimization.com
+        - carrier-staging.freightoptimization.com
+        - shipper-staging.freightoptimization.com
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+
+# Persistence configuration
+persistence:
+  storageClass: standard
+  accessMode: ReadWriteOnce
+
+# Security configuration
+security:
+  networkPolicies:
+    enabled: true
+  podSecurityPolicies:
+    enabled: true
+
+# Node affinity and anti-affinity settings
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - freight-platform
+          topologyKey: kubernetes.io/hostname
+
+# Node selector for staging environment
+nodeSelector:
+  role: application
+  environment: staging
