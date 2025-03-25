@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: driver-service-config
+  namespace: default
+  labels:
+    app: driver-service
+    component: backend
+    part-of: freight-optimization
+  annotations:
+    description: "Configuration for the Driver Service that manages driver profiles, preferences, availability, and HOS compliance"
+data:
+  # Logging and Documentation
+  LOG_LEVEL: "info"
+  ENABLE_SWAGGER: "true"
+  
+  # Database Configuration
+  DB_HOST: "postgres-postgresql.database"
+  DB_PORT: "5432"
+  DB_NAME: "freight_optimization"
+  
+  # Redis Configuration
+  REDIS_HOST: "redis-master.cache"
+  REDIS_PORT: "6379"
+  
+  # Kafka Configuration
+  KAFKA_BROKERS: "kafka-headless.messaging:9092"
+  KAFKA_CONSUMER_GROUP: "driver-service-group"
+  POSITION_UPDATE_TOPIC: "position-updates"
+  DRIVER_EVENTS_TOPIC: "driver-events"
+  ELD_UPDATES_TOPIC: "eld-updates"
+  
+  # Data Retention (FMCSA compliance requires 6 months of HOS data)
+  HOS_RETENTION_DAYS: "180"
+  POSITION_RETENTION_DAYS: "90"
+  
+  # ELD Integration
+  ENABLE_ELD_INTEGRATION: "true"
+  ELD_POLLING_INTERVAL: "900"  # 15 minutes in seconds
+  KEEPTRUCKIN_API_URL: "https://api.keeptruckin.com/v1"
+  OMNITRACS_API_URL: "https://api.omnitracs.com/v1"
+  SAMSARA_API_URL: "https://api.samsara.com/v1"
+  
+  # API Configuration
+  API_PREFIX: "/api/v1"
+  SERVICE_NAME: "driver-service"
+  
+  # Resilience Configuration
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: "50"
+  CIRCUIT_BREAKER_RESET_TIMEOUT_MS: "30000"
+  SERVICE_HEALTH_CHECK_INTERVAL_MS: "30000"
+  SERVICE_TIMEOUT_MS: "10000"
+  
+  # Hours of Service Limits (US regulations)
+  HOS_DRIVING_LIMIT_MINUTES: "660"  # 11 hours
+  HOS_DUTY_LIMIT_MINUTES: "840"     # 14 hours
+  HOS_CYCLE_LIMIT_MINUTES: "3600"   # 60 hours (7-day cycle)
+  
+  # Environment
+  NODE_ENV: "production"
