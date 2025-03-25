@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: load-matching-service-config
+  namespace: default
+  labels:
+    app: load-matching-service
+    component: load-matching
+    part-of: freight-optimization
+  annotations:
+    description: 'Configuration for the Load Matching Service that matches available loads with drivers based on AI predictions, driver preferences, and network optimization goals'
+data:
+  PORT: "3004"
+  LOG_LEVEL: "info"
+  ENABLE_SWAGGER: "false"
+  NODE_OPTIONS: "--max-old-space-size=2048"
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "load_matching_service"
+  DB_SCHEMA: "public"
+  DB_POOL_MIN: "2"
+  DB_POOL_MAX: "10"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_PREFIX: "load-matching:"
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_CLIENT_ID: "load-matching-service"
+  KAFKA_GROUP_ID: "load-matching-service-group"
+  KAFKA_TOPIC_PREFIX: "freight-optimization."
+  RECOMMENDATION_EXPIRATION_HOURS: "24"
+  RESERVATION_EXPIRATION_MINUTES: "15"
+  MAX_RECOMMENDATIONS_PER_DRIVER: "10"
+  SCORE_WEIGHT_EMPTY_MILES: "0.30"
+  SCORE_WEIGHT_NETWORK_CONTRIBUTION: "0.25"
+  SCORE_WEIGHT_ON_TIME: "0.20"
+  SCORE_WEIGHT_SMART_HUB: "0.15"
+  SCORE_WEIGHT_FUEL_EFFICIENCY: "0.10"
+  OPTIMIZATION_SERVICE_URL: "http://optimization-engine:80"
+  DRIVER_SERVICE_URL: "http://driver-service:80"
+  LOAD_SERVICE_URL: "http://load-service:80"
+  HEALTH_CHECK_INTERVAL: "30"
+  METRICS_ENABLED: "true"
+  TRACING_ENABLED: "true"
+  TRACING_SAMPLING_RATE: "0.1"
