@@ -1,0 +1,19 @@
+{
+  "watch": ["src/**/*.ts", "common/**/*.ts"],
+  "ignore": ["**/*.test.ts", "**/*.spec.ts", "node_modules", "dist"],
+  "ext": "ts,json",
+  "exec": "ts-node --transpile-only src/index.ts",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "verbose": true,
+  "restartable": "rs",
+  "delay": 1000,
+  "execMap": {
+    "ts": "ts-node"
+  },
+  "events": {
+    "restart": "echo \"[Nodemon] App restarted due to changes\""
+  },
+  "legacyWatch": false
+}
