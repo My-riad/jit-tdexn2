@@ -1,0 +1,316 @@
+groups:
+  - name: api-gateway-availability
+    rules:
+    - alert: APIGatewayDown
+      expr: sum(up{job="api-gateway"}) < 1
+      for: 1m
+      labels:
+        severity: critical
+        category: availability
+      annotations:
+        summary: API Gateway is down
+        description: API Gateway has been down for more than 1 minute
+        impact: All client applications cannot access the platform
+        action: Check API Gateway logs, pod status, and infrastructure
+
+    - alert: APIGatewayHighUnavailability
+      expr: sum(kube_deployment_status_replicas_available{deployment="api-gateway"}) / sum(kube_deployment_status_replicas{deployment="api-gateway"}) < 0.7
+      for: 5m
+      labels:
+        severity: critical
+        category: availability
+      annotations:
+        summary: API Gateway high unavailability
+        description: Less than 70% of API Gateway replicas are available for more than 5 minutes
+        impact: Reduced capacity and potential service degradation
+        action: Check pod status, logs, and deployment events
+
+    - alert: APIGatewayReplicasMismatch
+      expr: kube_deployment_spec_replicas{deployment="api-gateway"} != kube_deployment_status_replicas_available{deployment="api-gateway"}
+      for: 15m
+      labels:
+        severity: warning
+        category: availability
+      annotations:
+        summary: API Gateway replicas mismatch
+        description: Deployment replicas do not match available replicas for more than 15 minutes
+        impact: Potential scaling issues or pod failures
+        action: Check deployment status, pod events, and container logs
+
+  - name: api-gateway-performance
+    rules:
+    - alert: APIGatewayHighResponseTime
+      expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="api-gateway"}[5m])) by (le)) > 0.5
+      for: 5m
+      labels:
+        severity: warning
+        category: performance
+      annotations:
+        summary: API Gateway high response time
+        description: 95th percentile response time is above 500ms for more than 5 minutes
+        impact: User experience degradation and potential SLA violations
+        action: Check API Gateway performance, backend services, and resource utilization
+
+    - alert: APIGatewayCriticalResponseTime
+      expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="api-gateway"}[5m])) by (le)) > 1
+      for: 5m
+      labels:
+        severity: critical
+        category: performance
+      annotations:
+        summary: API Gateway critical response time
+        description: 95th percentile response time is above 1s for more than 5 minutes
+        impact: Severe user experience degradation and SLA violations
+        action: Immediate investigation of API Gateway and backend services required
+
+    - alert: APIGatewaySlowEndpoints
+      expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="api-gateway"}[5m])) by (le, path)) > 1
+      for: 5m
+      labels:
+        severity: warning
+        category: performance
+      annotations:
+        summary: API Gateway slow endpoints detected
+        description: Endpoint {{ $labels.path }} has 95th percentile response time above 1s for more than 5 minutes
+        impact: Specific endpoint performance degradation affecting user experience
+        action: Investigate specific endpoint and corresponding backend service
+
+  - name: api-gateway-errors
+    rules:
+    - alert: APIGatewayHighErrorRate
+      expr: sum(rate(http_requests_total{job="api-gateway", status=~"5.."}[5m])) / sum(rate(http_requests_total{job="api-gateway"}[5m])) > 0.01
+      for: 5m
+      labels:
+        severity: warning
+        category: errors
+      annotations:
+        summary: API Gateway high error rate
+        description: Error rate is above 1% for more than 5 minutes
+        impact: Some requests are failing, affecting user experience
+        action: Check API Gateway logs and backend service status
+
+    - alert: APIGatewayCriticalErrorRate
+      expr: sum(rate(http_requests_total{job="api-gateway", status=~"5.."}[5m])) / sum(rate(http_requests_total{job="api-gateway"}[5m])) > 0.05
+      for: 5m
+      labels:
+        severity: critical
+        category: errors
+      annotations:
+        summary: API Gateway critical error rate
+        description: Error rate is above 5% for more than 5 minutes
+        impact: Significant number of requests are failing, severely affecting user experience
+        action: Immediate investigation required, check API Gateway and backend services
+
+    - alert: APIGateway5xxErrors
+      expr: sum(rate(http_requests_total{job="api-gateway", status=~"5.."}[5m])) > 10
+      for: 5m
+      labels:
+        severity: warning
+        category: errors
+      annotations:
+        summary: API Gateway 5xx errors
+        description: API Gateway is returning 5xx errors at a rate of more than 10 per second
+        impact: Server-side errors affecting user experience
+        action: Check API Gateway logs and backend service status
+
+    - alert: APIGatewayHighRateLimiting
+      expr: sum(rate(rate_limiter_total{job="api-gateway", result="limited"}[5m])) > 10
+      for: 5m
+      labels:
+        severity: warning
+        category: errors
+      annotations:
+        summary: API Gateway high rate limiting
+        description: More than 10 requests per second are being rate limited
+        impact: Clients are being throttled, potentially affecting user experience
+        action: Check for abusive clients or consider adjusting rate limits
+
+  - name: api-gateway-resources
+    rules:
+    - alert: APIGatewayHighCPUUsage
+      expr: sum(rate(container_cpu_usage_seconds_total{pod=~"api-gateway-.*"}[5m])) by (pod) / sum(kube_pod_container_resource_limits{pod=~"api-gateway-.*", resource="cpu"}) by (pod) > 0.7
+      for: 15m
+      labels:
+        severity: warning
+        category: resources
+      annotations:
+        summary: API Gateway high CPU usage
+        description: Pod {{ $labels.pod }} is using more than 70% of its CPU limit for more than 15 minutes
+        impact: Risk of performance degradation if usage continues to increase
+        action: Check API Gateway load and consider scaling if necessary
+
+    - alert: APIGatewayHighMemoryUsage
+      expr: sum(container_memory_working_set_bytes{pod=~"api-gateway-.*"}) by (pod) / sum(kube_pod_container_resource_limits{pod=~"api-gateway-.*", resource="memory"}) by (pod) > 0.7
+      for: 15m
+      labels:
+        severity: warning
+        category: resources
+      annotations:
+        summary: API Gateway high memory usage
+        description: Pod {{ $labels.pod }} is using more than 70% of its memory limit for more than 15 minutes
+        impact: Risk of OOM kills if usage continues to increase
+        action: Check API Gateway memory usage patterns and consider scaling if necessary
+
+    - alert: APIGatewayCriticalCPUUsage
+      expr: sum(rate(container_cpu_usage_seconds_total{pod=~"api-gateway-.*"}[5m])) by (pod) / sum(kube_pod_container_resource_limits{pod=~"api-gateway-.*", resource="cpu"}) by (pod) > 0.9
+      for: 5m
+      labels:
+        severity: critical
+        category: resources
+      annotations:
+        summary: API Gateway critical CPU usage
+        description: Pod {{ $labels.pod }} is using more than 90% of its CPU limit for more than 5 minutes
+        impact: Severe performance degradation and potential throttling
+        action: Immediate scaling required or investigate high CPU usage cause
+
+    - alert: APIGatewayCriticalMemoryUsage
+      expr: sum(container_memory_working_set_bytes{pod=~"api-gateway-.*"}) by (pod) / sum(kube_pod_container_resource_limits{pod=~"api-gateway-.*", resource="memory"}) by (pod) > 0.9
+      for: 5m
+      labels:
+        severity: critical
+        category: resources
+      annotations:
+        summary: API Gateway critical memory usage
+        description: Pod {{ $labels.pod }} is using more than 90% of its memory limit for more than 5 minutes
+        impact: Imminent risk of OOM kills and service disruption
+        action: Immediate scaling required or investigate memory usage cause
+
+  - name: api-gateway-circuit-breakers
+    rules:
+    - alert: APIGatewayCircuitBreakerOpen
+      expr: circuit_breaker_state{job="api-gateway", state="open"} > 0
+      for: 1m
+      labels:
+        severity: warning
+        category: resilience
+      annotations:
+        summary: API Gateway circuit breaker open
+        description: Circuit breaker for service {{ $labels.service }} is in open state for more than 1 minute
+        impact: Requests to {{ $labels.service }} are failing fast, affecting functionality
+        action: Check the health of the {{ $labels.service }} and its dependencies
+
+    - alert: APIGatewayMultipleCircuitBreakersOpen
+      expr: sum(circuit_breaker_state{job="api-gateway", state="open"}) > 2
+      for: 1m
+      labels:
+        severity: critical
+        category: resilience
+      annotations:
+        summary: Multiple API Gateway circuit breakers open
+        description: More than 2 circuit breakers are in open state for more than 1 minute
+        impact: Multiple services are failing, severely affecting platform functionality
+        action: Initiate incident response procedure and check backend services
+
+  - name: api-gateway-traffic
+    rules:
+    - alert: APIGatewayHighTraffic
+      expr: sum(rate(http_requests_total{job="api-gateway"}[5m])) > 1000
+      for: 15m
+      labels:
+        severity: warning
+        category: traffic
+      annotations:
+        summary: API Gateway high traffic
+        description: API Gateway is processing more than 1000 requests per second for more than 15 minutes
+        impact: High load may affect performance if sustained
+        action: Monitor performance metrics and consider scaling if necessary
+
+    - alert: APIGatewayLowTraffic
+      expr: sum(rate(http_requests_total{job="api-gateway"}[30m])) < 1 unless sum(rate(http_requests_total{job="api-gateway"}[5m])) == 0
+      for: 30m
+      labels:
+        severity: warning
+        category: traffic
+      annotations:
+        summary: API Gateway low traffic
+        description: API Gateway is processing less than 1 request per second for more than 30 minutes during business hours
+        impact: Potential issue with client connectivity or upstream services
+        action: Verify client connectivity and upstream service health
+
+    - alert: APIGatewayTrafficSpike
+      expr: sum(rate(http_requests_total{job="api-gateway"}[5m])) > 2 * sum(rate(http_requests_total{job="api-gateway"}[1h] offset 5m))
+      for: 5m
+      labels:
+        severity: warning
+        category: traffic
+      annotations:
+        summary: API Gateway traffic spike
+        description: API Gateway traffic has increased by more than 100% compared to the previous hour
+        impact: Sudden increase in load may affect performance
+        action: Check for expected traffic patterns or potential DDoS attack
+
+  - name: api-gateway-backend-services
+    rules:
+    - alert: APIGatewayBackendServiceDown
+      expr: api_gateway_service_health{service=~".+-service"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        category: connectivity
+      annotations:
+        summary: API Gateway backend service down
+        description: Backend service {{ $labels.service }} has been down for more than 5 minutes
+        impact: Functionality dependent on {{ $labels.service }} is unavailable
+        action: Check the health and logs of {{ $labels.service }}
+
+    - alert: APIGatewayBackendServiceHighLatency
+      expr: api_gateway_service_response_time{service=~".+-service"} > 1
+      for: 5m
+      labels:
+        severity: warning
+        category: performance
+      annotations:
+        summary: API Gateway backend service high latency
+        description: Backend service {{ $labels.service }} has response time above 1s for more than 5 minutes
+        impact: Slow responses for functionality dependent on {{ $labels.service }}
+        action: Check the performance and logs of {{ $labels.service }}
+
+    - alert: APIGatewayBackendServiceErrors
+      expr: sum(rate(api_gateway_service_errors_total{service=~".+-service"}[5m])) by (service) / sum(rate(api_gateway_service_requests_total{service=~".+-service"}[5m])) by (service) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        category: errors
+      annotations:
+        summary: API Gateway backend service errors
+        description: Backend service {{ $labels.service }} has error rate above 5% for more than 5 minutes
+        impact: Functionality dependent on {{ $labels.service }} is experiencing failures
+        action: Check the logs and error details of {{ $labels.service }}
+
+  - name: api-gateway-nodejs
+    rules:
+    - alert: APIGatewayNodeJSHighEventLoopLag
+      expr: nodejs_eventloop_lag_seconds{pod=~"api-gateway-.*"} > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        category: performance
+      annotations:
+        summary: API Gateway Node.js high event loop lag
+        description: Pod {{ $labels.pod }} has event loop lag above 100ms for more than 5 minutes
+        impact: JavaScript execution is delayed, affecting request processing
+        action: Check for CPU-intensive operations or blocking code
+
+    - alert: APIGatewayNodeJSHighHeapUsage
+      expr: nodejs_heap_size_used_bytes{pod=~"api-gateway-.*"} / nodejs_heap_size_total_bytes{pod=~"api-gateway-.*"} > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        category: resources
+      annotations:
+        summary: API Gateway Node.js high heap usage
+        description: Pod {{ $labels.pod }} is using more than 80% of its V8 heap for more than 5 minutes
+        impact: Risk of memory-related performance issues or crashes
+        action: Check for memory leaks or increase memory limits
+
+    - alert: APIGatewayNodeJSHighGCDuration
+      expr: rate(nodejs_gc_duration_seconds_sum{pod=~"api-gateway-.*"}[5m]) / rate(nodejs_gc_duration_seconds_count{pod=~"api-gateway-.*"}[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        category: performance
+      annotations:
+        summary: API Gateway Node.js high GC duration
+        description: Pod {{ $labels.pod }} is spending more than 10% of time in garbage collection for more than 5 minutes
+        impact: Garbage collection is affecting application performance
+        action: Check memory usage patterns and optimize memory allocation
