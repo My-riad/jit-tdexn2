@@ -1,0 +1,161 @@
+name: Web CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/web/**'
+      - '.github/workflows/web-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/web/**'
+
+env:
+  NODE_VERSION: 18.x
+  WORKING_DIRECTORY: src/web
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+      
+      - name: Run ESLint
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run lint
+      
+      - name: Run TypeScript type checking
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run typecheck
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+      
+      - name: Run tests
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm test
+      
+      - name: Generate coverage report
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run test:coverage
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ${{ env.WORKING_DIRECTORY }}/coverage
+          flags: web
+          fail_ci_if_error: true
+
+  build-carrier-portal:
+    name: Build Carrier Portal
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+      
+      - name: Build carrier portal
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run build:carrier
+        env:
+          REACT_APP_API_URL: https://api-dev.freightoptimization.com
+          REACT_APP_ENVIRONMENT: development
+      
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: carrier-portal-dist
+          path: src/web/carrier-portal/dist
+
+  build-shipper-portal:
+    name: Build Shipper Portal
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+      
+      - name: Build shipper portal
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run build:shipper
+        env:
+          REACT_APP_API_URL: https://api-dev.freightoptimization.com
+          REACT_APP_ENVIRONMENT: development
+      
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: shipper-portal-dist
+          path: src/web/shipper-portal/dist
+
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [build-carrier-portal, build-shipper-portal]
+    if: always()
+    steps:
+      - name: Check build status
+        id: check
+        run: echo "status=${{ needs.build-carrier-portal.result == 'success' && needs.build-shipper-portal.result == 'success' && needs.test.result == 'success' && needs.lint.result == 'success' && 'success' || 'failure' }}" >> $GITHUB_OUTPUT
+      
+      - name: Send Slack notification
+        uses: rtCamp/action-slack-notify@v2
+        if: always()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_TITLE: 'Web CI Result'
+          SLACK_MESSAGE: 'Web CI pipeline completed with status: ${{ steps.check.outputs.status }}'
+          SLACK_COLOR: "${{ steps.check.outputs.status == 'success' && 'good' || 'danger' }}"
+          SLACK_FOOTER: 'AI-driven Freight Optimization Platform'
