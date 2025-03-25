@@ -1,0 +1,548 @@
+# Service Accounts for all microservices
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api-gateway
+  namespace: default
+  labels:
+    app: api-gateway
+    component: security
+    part-of: freight-optimization
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: auth-service
+  namespace: default
+  labels:
+    app: auth-service
+    component: security
+    part-of: freight-optimization
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: driver-service
+  namespace: default
+  labels:
+    app: driver-service
+    component: security
+    part-of: freight-optimization
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: load-service
+  namespace: default
+  labels:
+    app: load-service
+    component: security
+    part-of: freight-optimization
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: load-matching-service
+  namespace: default
+  labels:
+    app: load-matching-service
+    component: security
+    part-of: freight-optimization
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: optimization-engine
+  namespace: default
+  labels:
+    app: optimization-engine
+    component: security
+    part-of: freight-optimization
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tracking-service
+  namespace: default
+  labels:
+    app: tracking-service
+    component: security
+    part-of: freight-optimization
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gamification-service
+  namespace: default
+  labels:
+    app: gamification-service
+    component: security
+    part-of: freight-optimization
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: market-intelligence-service
+  namespace: default
+  labels:
+    app: market-intelligence-service
+    component: security
+    part-of: freight-optimization
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: notification-service
+  namespace: default
+  labels:
+    app: notification-service
+    component: security
+    part-of: freight-optimization
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: integration-service
+  namespace: default
+  labels:
+    app: integration-service
+    component: security
+    part-of: freight-optimization
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: event-bus
+  namespace: default
+  labels:
+    app: event-bus
+    component: security
+    part-of: freight-optimization
+---
+# Pod Security Policy Roles
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: restricted-psp-user
+  namespace: default
+  labels:
+    component: security
+    part-of: freight-optimization
+rules:
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["use"]
+  resourceNames: ["restricted"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: privileged-psp-user
+  namespace: default
+  labels:
+    component: security
+    part-of: freight-optimization
+rules:
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["use"]
+  resourceNames: ["privileged"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: database-psp-user
+  namespace: default
+  labels:
+    component: security
+    part-of: freight-optimization
+rules:
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["use"]
+  resourceNames: ["database"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: optimization-engine-psp-user
+  namespace: default
+  labels:
+    component: security
+    part-of: freight-optimization
+rules:
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["use"]
+  resourceNames: ["optimization-engine"]
+---
+# Service-specific roles with least privilege permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: api-gateway-role
+  namespace: default
+  labels:
+    app: api-gateway
+    component: security
+    part-of: freight-optimization
+rules:
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["api-gateway-config"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["api-gateway-secrets"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: event-bus-role
+  namespace: default
+  labels:
+    app: event-bus
+    component: security
+    part-of: freight-optimization
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["event-bus-config"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["event-bus-secrets"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: optimization-engine-role
+  namespace: default
+  labels:
+    app: optimization-engine
+    component: security
+    part-of: freight-optimization
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["optimization-engine-config"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["optimization-engine-secrets"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# RoleBindings for Pod Security Policies
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: api-gateway-restricted-psp
+  namespace: default
+  labels:
+    app: api-gateway
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: restricted-psp-user
+subjects:
+- kind: ServiceAccount
+  name: api-gateway
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: auth-service-restricted-psp
+  namespace: default
+  labels:
+    app: auth-service
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: restricted-psp-user
+subjects:
+- kind: ServiceAccount
+  name: auth-service
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: driver-service-restricted-psp
+  namespace: default
+  labels:
+    app: driver-service
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: restricted-psp-user
+subjects:
+- kind: ServiceAccount
+  name: driver-service
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: load-service-restricted-psp
+  namespace: default
+  labels:
+    app: load-service
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: restricted-psp-user
+subjects:
+- kind: ServiceAccount
+  name: load-service
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: load-matching-service-restricted-psp
+  namespace: default
+  labels:
+    app: load-matching-service
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: restricted-psp-user
+subjects:
+- kind: ServiceAccount
+  name: load-matching-service
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: optimization-engine-psp
+  namespace: default
+  labels:
+    app: optimization-engine
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: optimization-engine-psp-user
+subjects:
+- kind: ServiceAccount
+  name: optimization-engine
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tracking-service-restricted-psp
+  namespace: default
+  labels:
+    app: tracking-service
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: restricted-psp-user
+subjects:
+- kind: ServiceAccount
+  name: tracking-service
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gamification-service-restricted-psp
+  namespace: default
+  labels:
+    app: gamification-service
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: restricted-psp-user
+subjects:
+- kind: ServiceAccount
+  name: gamification-service
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: market-intelligence-service-restricted-psp
+  namespace: default
+  labels:
+    app: market-intelligence-service
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: restricted-psp-user
+subjects:
+- kind: ServiceAccount
+  name: market-intelligence-service
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: notification-service-restricted-psp
+  namespace: default
+  labels:
+    app: notification-service
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: restricted-psp-user
+subjects:
+- kind: ServiceAccount
+  name: notification-service
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: integration-service-restricted-psp
+  namespace: default
+  labels:
+    app: integration-service
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: restricted-psp-user
+subjects:
+- kind: ServiceAccount
+  name: integration-service
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: event-bus-restricted-psp
+  namespace: default
+  labels:
+    app: event-bus
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: restricted-psp-user
+subjects:
+- kind: ServiceAccount
+  name: event-bus
+  namespace: default
+---
+# RoleBindings for service-specific roles
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: api-gateway-role-binding
+  namespace: default
+  labels:
+    app: api-gateway
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: api-gateway-role
+subjects:
+- kind: ServiceAccount
+  name: api-gateway
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: event-bus-role-binding
+  namespace: default
+  labels:
+    app: event-bus
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: event-bus-role
+subjects:
+- kind: ServiceAccount
+  name: event-bus
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: optimization-engine-role-binding
+  namespace: default
+  labels:
+    app: optimization-engine
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: optimization-engine-role
+subjects:
+- kind: ServiceAccount
+  name: optimization-engine
+  namespace: default
+---
+# ClusterRole for metrics reading (for Prometheus)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: freight-optimization-metrics-reader
+  labels:
+    component: security
+    part-of: freight-optimization
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions", "networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+---
+# ClusterRoleBinding for metrics reading
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: freight-optimization-metrics-reader
+  labels:
+    component: security
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: freight-optimization-metrics-reader
+subjects:
+- kind: ServiceAccount
+  name: prometheus
+  namespace: monitoring
