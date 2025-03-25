@@ -1,0 +1,200 @@
+name: Web CD
+
+on:
+  workflow_dispatch:  # Manual trigger
+  push:
+    branches:
+      - develop
+      - staging
+      - main
+    tags:
+      - v*
+    paths:
+      - src/web/**
+      - .github/workflows/web-cd.yml
+
+env:
+  NODE_VERSION: '18.x'
+  WORKING_DIRECTORY: 'src/web'
+
+jobs:
+  determine-environment:
+    name: Determine Environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      carrier_s3_bucket: ${{ steps.set-config.outputs.carrier_s3_bucket }}
+      shipper_s3_bucket: ${{ steps.set-config.outputs.shipper_s3_bucket }}
+      carrier_cloudfront_id: ${{ steps.set-config.outputs.carrier_cloudfront_id }}
+      shipper_cloudfront_id: ${{ steps.set-config.outputs.shipper_cloudfront_id }}
+      api_url: ${{ steps.set-config.outputs.api_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Determine environment
+        id: set-env
+        run: echo "environment=$(if [[ $GITHUB_REF == refs/heads/develop ]]; then echo dev; elif [[ $GITHUB_REF == refs/heads/staging ]]; then echo staging; elif [[ $GITHUB_REF == refs/heads/main ]] || [[ $GITHUB_REF == refs/tags/v* ]]; then echo prod; else echo dev; fi)" >> $GITHUB_OUTPUT
+
+      - name: Set environment-specific configuration
+        id: set-config
+        run: |
+          if [[ "${{ steps.set-env.outputs.environment }}" == "dev" ]]; then
+            echo "carrier_s3_bucket=freight-dev-carrier-portal" >> $GITHUB_OUTPUT
+            echo "shipper_s3_bucket=freight-dev-shipper-portal" >> $GITHUB_OUTPUT
+            echo "carrier_cloudfront_id=${{ secrets.DEV_CARRIER_CLOUDFRONT_ID }}" >> $GITHUB_OUTPUT
+            echo "shipper_cloudfront_id=${{ secrets.DEV_SHIPPER_CLOUDFRONT_ID }}" >> $GITHUB_OUTPUT
+            echo "api_url=https://api-dev.freightoptimization.com" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.set-env.outputs.environment }}" == "staging" ]]; then
+            echo "carrier_s3_bucket=freight-staging-carrier-portal" >> $GITHUB_OUTPUT
+            echo "shipper_s3_bucket=freight-staging-shipper-portal" >> $GITHUB_OUTPUT
+            echo "carrier_cloudfront_id=${{ secrets.STAGING_CARRIER_CLOUDFRONT_ID }}" >> $GITHUB_OUTPUT
+            echo "shipper_cloudfront_id=${{ secrets.STAGING_SHIPPER_CLOUDFRONT_ID }}" >> $GITHUB_OUTPUT
+            echo "api_url=https://api-staging.freightoptimization.com" >> $GITHUB_OUTPUT
+          else
+            echo "carrier_s3_bucket=freight-prod-carrier-portal" >> $GITHUB_OUTPUT
+            echo "shipper_s3_bucket=freight-prod-shipper-portal" >> $GITHUB_OUTPUT
+            echo "carrier_cloudfront_id=${{ secrets.PROD_CARRIER_CLOUDFRONT_ID }}" >> $GITHUB_OUTPUT
+            echo "shipper_cloudfront_id=${{ secrets.PROD_SHIPPER_CLOUDFRONT_ID }}" >> $GITHUB_OUTPUT
+            echo "api_url=https://api.freightoptimization.com" >> $GITHUB_OUTPUT
+          fi
+
+  build-carrier-portal:
+    name: Build Carrier Portal
+    runs-on: ubuntu-latest
+    needs: [determine-environment]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'src/web/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+      
+      - name: Create .env file
+        working-directory: ${{ env.WORKING_DIRECTORY }}/carrier-portal
+        run: |
+          echo "REACT_APP_API_URL=${{ needs.determine-environment.outputs.api_url }}" > .env.${{ needs.determine-environment.outputs.environment }}
+          echo "REACT_APP_ENVIRONMENT=${{ needs.determine-environment.outputs.environment }}" >> .env.${{ needs.determine-environment.outputs.environment }}
+          echo "REACT_APP_MAPBOX_TOKEN=${{ secrets.MAPBOX_TOKEN }}" >> .env.${{ needs.determine-environment.outputs.environment }}
+      
+      - name: Build carrier portal
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run build:carrier
+      
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: carrier-portal-dist
+          path: src/web/carrier-portal/dist
+
+  build-shipper-portal:
+    name: Build Shipper Portal
+    runs-on: ubuntu-latest
+    needs: [determine-environment]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'src/web/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+      
+      - name: Create .env file
+        working-directory: ${{ env.WORKING_DIRECTORY }}/shipper-portal
+        run: |
+          echo "REACT_APP_API_URL=${{ needs.determine-environment.outputs.api_url }}" > .env.${{ needs.determine-environment.outputs.environment }}
+          echo "REACT_APP_ENVIRONMENT=${{ needs.determine-environment.outputs.environment }}" >> .env.${{ needs.determine-environment.outputs.environment }}
+          echo "REACT_APP_MAPBOX_TOKEN=${{ secrets.MAPBOX_TOKEN }}" >> .env.${{ needs.determine-environment.outputs.environment }}
+      
+      - name: Build shipper portal
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run build:shipper
+      
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: shipper-portal-dist
+          path: src/web/shipper-portal/dist
+
+  deploy-carrier-portal:
+    name: Deploy Carrier Portal
+    runs-on: ubuntu-latest
+    needs: [determine-environment, build-carrier-portal]
+    environment: ${{ needs.determine-environment.outputs.environment }}
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: carrier-portal-dist
+          path: carrier-portal-dist
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Deploy to S3
+        run: aws s3 sync carrier-portal-dist/ s3://${{ needs.determine-environment.outputs.carrier_s3_bucket }} --delete
+      
+      - name: Invalidate CloudFront cache
+        run: aws cloudfront create-invalidation --distribution-id ${{ needs.determine-environment.outputs.carrier_cloudfront_id }} --paths "/*"
+
+  deploy-shipper-portal:
+    name: Deploy Shipper Portal
+    runs-on: ubuntu-latest
+    needs: [determine-environment, build-shipper-portal]
+    environment: ${{ needs.determine-environment.outputs.environment }}
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: shipper-portal-dist
+          path: shipper-portal-dist
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Deploy to S3
+        run: aws s3 sync shipper-portal-dist/ s3://${{ needs.determine-environment.outputs.shipper_s3_bucket }} --delete
+      
+      - name: Invalidate CloudFront cache
+        run: aws cloudfront create-invalidation --distribution-id ${{ needs.determine-environment.outputs.shipper_cloudfront_id }} --paths "/*"
+
+  notify-deployment:
+    name: Send Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [deploy-carrier-portal, deploy-shipper-portal, determine-environment]
+    if: always()
+    steps:
+      - name: Determine deployment status
+        id: status
+        run: echo "status=$(if [[ ${{ contains(needs.*.result, 'failure') }} == true ]]; then echo failure; else echo success; fi)" >> $GITHUB_OUTPUT
+      
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          slack-message: "Web portals deployment to ${{ needs.determine-environment.outputs.environment }} environment: ${{ steps.status.outputs.status == 'success' && '✅ Success' || '❌ Failed' }}\nCarrier Portal: https://${{ needs.determine-environment.outputs.environment == 'prod' && 'carrier.freightoptimization.com' || format('carrier-{0}.freightoptimization.com', needs.determine-environment.outputs.environment) }}\nShipper Portal: https://${{ needs.determine-environment.outputs.environment == 'prod' && 'shipper.freightoptimization.com' || format('shipper-{0}.freightoptimization.com', needs.determine-environment.outputs.environment) }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
