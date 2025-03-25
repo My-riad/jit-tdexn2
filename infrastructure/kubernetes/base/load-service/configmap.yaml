@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: load-service-config
+  namespace: default
+  labels:
+    app: load-service
+    component: backend
+    part-of: freight-optimization
+  annotations:
+    description: Configuration for the Load Service that manages load lifecycle from creation to delivery, including status tracking and documentation
+data:
+  ENABLE_SWAGGER: "true"
+  LOG_LEVEL: "info"
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "freight_optimization"
+  KAFKA_BROKERS: "kafka:9092"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  S3_BUCKET: "freight-optimization-documents"
+  S3_REGION: "us-east-1"
+  LOAD_TOPIC: "load-events"
+  LOAD_STATUS_TOPIC: "load-status-events"
+  LOAD_DOCUMENT_BUCKET: "freight-optimization-documents"
+  LOAD_CACHE_TTL: "300"
+  ENABLE_TMS_INTEGRATION: "true"
+  TMS_SYNC_INTERVAL: "900000"
+  DOCUMENT_STORAGE_BUCKET: "freight-optimization-documents"
+  DOCUMENT_STORAGE_PATH: "loads"
+  MAX_DOCUMENT_SIZE_MB: "10"
+  ALLOWED_DOCUMENT_TYPES: "application/pdf,image/jpeg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  LOAD_EVENTS_TOPIC: "load-events"
+  ASSIGNMENT_EVENTS_TOPIC: "assignment-events"
+  LOAD_CONSUMER_GROUP: "load-service-group"
+  LOAD_SERVICE_PORT: "3000"
