@@ -1,0 +1,548 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: monitoring
+    part-of: freight-optimization
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+    component: monitoring
+    part-of: freight-optimization
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/proxy", "services", "endpoints", "pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["extensions"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+    component: monitoring
+    part-of: freight-optimization
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: monitoring
+    part-of: freight-optimization
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        environment: ${ENVIRONMENT}
+        region: ${REGION}
+
+    alerting:
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - alertmanager:9093
+
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+
+    scrape_configs:
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+
+      - job_name: 'kubernetes-service-endpoints'
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+            action: replace
+            target_label: __scheme__
+            regex: (https?)
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: kubernetes_service_name
+
+      - job_name: 'api-gateway'
+        static_configs:
+          - targets: ['api-gateway:3000']
+        metrics_path: /metrics
+        scrape_interval: 10s
+
+      - job_name: 'load-matching-service'
+        static_configs:
+          - targets: ['load-matching-service:3000']
+        metrics_path: /metrics
+        scrape_interval: 10s
+
+      - job_name: 'optimization-engine'
+        static_configs:
+          - targets: ['optimization-engine:3000']
+        metrics_path: /metrics
+        scrape_interval: 10s
+
+      - job_name: 'driver-service'
+        static_configs:
+          - targets: ['driver-service:3000']
+        metrics_path: /metrics
+        scrape_interval: 10s
+
+      - job_name: 'load-service'
+        static_configs:
+          - targets: ['load-service:3000']
+        metrics_path: /metrics
+        scrape_interval: 10s
+
+      - job_name: 'tracking-service'
+        static_configs:
+          - targets: ['tracking-service:3000']
+        metrics_path: /metrics
+        scrape_interval: 10s
+
+      - job_name: 'gamification-service'
+        static_configs:
+          - targets: ['gamification-service:3000']
+        metrics_path: /metrics
+        scrape_interval: 10s
+
+      - job_name: 'market-intelligence-service'
+        static_configs:
+          - targets: ['market-intelligence-service:3000']
+        metrics_path: /metrics
+        scrape_interval: 10s
+
+      - job_name: 'notification-service'
+        static_configs:
+          - targets: ['notification-service:3000']
+        metrics_path: /metrics
+        scrape_interval: 10s
+
+      - job_name: 'database-metrics'
+        static_configs:
+          - targets: ['postgres-exporter:9187', 'redis-exporter:9121', 'mongodb-exporter:9216']
+        metrics_path: /metrics
+        scrape_interval: 15s
+
+      - job_name: 'kafka-metrics'
+        static_configs:
+          - targets: ['kafka-exporter:9308']
+        metrics_path: /metrics
+        scrape_interval: 15s
+
+      - job_name: 'node-exporter'
+        static_configs:
+          - targets: ['node-exporter:9100']
+        metrics_path: /metrics
+        scrape_interval: 15s
+
+    storage:
+      tsdb:
+        path: /prometheus
+        retention_time: 15d
+
+    web:
+      listen_address: 0.0.0.0:9090
+      external_url: ${PROMETHEUS_EXTERNAL_URL}
+      page_title: 'Freight Optimization Platform Prometheus'
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: monitoring
+    part-of: freight-optimization
+data:
+  alert-rules.yml: |
+    groups:
+      - name: system-alerts
+        rules:
+          - alert: HighCpuUsage
+            expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+            for: 10m
+            labels:
+              severity: warning
+              category: system
+            annotations:
+              summary: High CPU usage detected
+              description: CPU usage on {{ $labels.instance }} has been above 85% for more than 10 minutes
+              impact: System performance may be degraded
+              action: Investigate the cause of high CPU usage and consider scaling resources
+
+          - alert: HighMemoryUsage
+            expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+            for: 10m
+            labels:
+              severity: warning
+              category: system
+            annotations:
+              summary: High memory usage detected
+              description: Memory usage on {{ $labels.instance }} has been above 90% for more than 10 minutes
+              impact: System may experience OOM kills
+              action: Investigate the cause of high memory usage and consider scaling resources
+
+          - alert: HighDiskUsage
+            expr: 100 - ((node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100) > 85
+            for: 10m
+            labels:
+              severity: warning
+              category: system
+            annotations:
+              summary: High disk usage detected
+              description: Disk usage on {{ $labels.instance }} ({{ $labels.mountpoint }}) has been above 85% for more than 10 minutes
+              impact: System may run out of disk space
+              action: Clean up disk space or expand storage
+
+      - name: api-gateway-alerts
+        rules:
+          - alert: ApiGatewayHighErrorRate
+            expr: sum(rate(http_requests_total{job="api-gateway",status=~"5.."}[5m])) / sum(rate(http_requests_total{job="api-gateway"}[5m])) * 100 > 5
+            for: 5m
+            labels:
+              severity: critical
+              category: api
+            annotations:
+              summary: API Gateway high error rate
+              description: API Gateway error rate is above 5% for more than 5 minutes
+              impact: Users may be experiencing API failures
+              action: Check API Gateway logs and dependent services
+
+          - alert: ApiGatewayHighResponseTime
+            expr: http_request_duration_seconds{job="api-gateway",quantile="0.95"} > 0.5
+            for: 5m
+            labels:
+              severity: warning
+              category: api
+            annotations:
+              summary: API Gateway high response time
+              description: API Gateway p95 response time is above 500ms for more than 5 minutes
+              impact: Users may be experiencing slow API responses
+              action: Check API Gateway performance and dependent services
+
+      - name: load-matching-alerts
+        rules:
+          - alert: LoadMatchingServiceHighErrorRate
+            expr: sum(rate(http_requests_total{job="load-matching-service",status=~"5.."}[5m])) / sum(rate(http_requests_total{job="load-matching-service"}[5m])) * 100 > 5
+            for: 5m
+            labels:
+              severity: critical
+              category: service
+            annotations:
+              summary: Load Matching Service high error rate
+              description: Load Matching Service error rate is above 5% for more than 5 minutes
+              impact: Load matching functionality may be impaired
+              action: Check Load Matching Service logs and dependent services
+
+          - alert: LoadMatchingServiceHighResponseTime
+            expr: http_request_duration_seconds{job="load-matching-service",handler="/api/v1/matches/recommendations",quantile="0.95"} > 1
+            for: 5m
+            labels:
+              severity: warning
+              category: service
+            annotations:
+              summary: Load Matching Service high response time
+              description: Load Matching Service p95 response time for recommendations is above 1s for more than 5 minutes
+              impact: Drivers may experience delays in receiving load recommendations
+              action: Check Load Matching Service performance and optimization engine
+
+      - name: optimization-engine-alerts
+        rules:
+          - alert: OptimizationEngineHighProcessingTime
+            expr: optimization_job_duration_seconds{job="optimization-engine",quantile="0.95"} > 5
+            for: 5m
+            labels:
+              severity: warning
+              category: service
+            annotations:
+              summary: Optimization Engine high processing time
+              description: Optimization Engine p95 job processing time is above 5s for more than 5 minutes
+              impact: Load matching quality and response time may be degraded
+              action: Check Optimization Engine performance and resource utilization
+
+          - alert: OptimizationEngineHighErrorRate
+            expr: sum(rate(optimization_jobs_total{job="optimization-engine",status="error"}[5m])) / sum(rate(optimization_jobs_total{job="optimization-engine"}[5m])) * 100 > 5
+            for: 5m
+            labels:
+              severity: critical
+              category: service
+            annotations:
+              summary: Optimization Engine high error rate
+              description: Optimization Engine job error rate is above 5% for more than 5 minutes
+              impact: Load matching quality may be severely degraded
+              action: Check Optimization Engine logs and dependent services
+
+      - name: business-metrics-alerts
+        rules:
+          - alert: HighEmptyMilesPercentage
+            expr: empty_miles_percentage > 25
+            for: 1h
+            labels:
+              severity: warning
+              category: business
+            annotations:
+              summary: High empty miles percentage
+              description: Empty miles percentage is above 25% for more than 1 hour
+              impact: Platform efficiency is below target
+              action: Review optimization algorithms and network balance
+
+          - alert: LowLoadFulfillmentRate
+            expr: load_fulfillment_rate < 90
+            for: 1h
+            labels:
+              severity: warning
+              category: business
+            annotations:
+              summary: Low load fulfillment rate
+              description: Load fulfillment rate is below 90% for more than 1 hour
+              impact: Shippers may be experiencing unfulfilled loads
+              action: Check driver availability and load matching algorithms
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: monitoring
+    part-of: freight-optimization
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: prometheus
+        component: monitoring
+        part-of: freight-optimization
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      serviceAccountName: prometheus
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.42.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--storage.tsdb.retention.time=15d"
+            - "--web.console.libraries=/etc/prometheus/console_libraries"
+            - "--web.console.templates=/etc/prometheus/consoles"
+            - "--web.enable-lifecycle"
+          ports:
+            - name: http
+              containerPort: 9090
+              protocol: TCP
+          env:
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: environment
+            - name: REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: region
+            - name: PROMETHEUS_EXTERNAL_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: prometheus_url
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "1000m"
+              memory: "4Gi"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/prometheus
+            - name: rules-volume
+              mountPath: /etc/prometheus/rules
+            - name: prometheus-data
+              mountPath: /prometheus
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+        - name: config-reloader
+          image: jimmidyson/configmap-reload:v0.7.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--volume-dir=/etc/prometheus"
+            - "--webhook-url=http://localhost:9090/-/reload"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "50Mi"
+            limits:
+              cpu: "100m"
+              memory: "100Mi"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/prometheus
+            - name: rules-volume
+              mountPath: /etc/prometheus/rules
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-config
+        - name: rules-volume
+          configMap:
+            name: prometheus-rules
+        - name: prometheus-data
+          persistentVolumeClaim:
+            claimName: prometheus-data
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 65534
+        runAsNonRoot: true
+      nodeSelector:
+        role: monitoring
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: monitoring
+    part-of: freight-optimization
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  selector:
+    app: prometheus
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: monitoring
+    part-of: freight-optimization
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard
