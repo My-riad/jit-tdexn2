@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Info -->
+    <string name="app_name">Freight Optimization</string>
+    <string name="google_maps_api_key">@string/google_maps_api_key_placeholder</string>
+    
+    <!-- Notification Channels -->
+    <string name="notification_channel_id">freight_optimization_channel</string>
+    <string name="notification_channel_name">Freight Optimization Notifications</string>
+    <string name="notification_channel_description">Notifications for load opportunities, status updates, and important alerts</string>
+    
+    <!-- Permission Messages -->
+    <string name="location_permission_title">Location Permission Required</string>
+    <string name="location_permission_message">This app needs location permission to find nearby loads and optimize your route</string>
+    <string name="background_location_permission_message">Background location is needed to track delivery progress and provide real-time updates</string>
+    <string name="camera_permission_title">Camera Permission Required</string>
+    <string name="camera_permission_message">Camera access is needed to scan documents and capture proof of delivery</string>
+    <string name="storage_permission_title">Storage Permission Required</string>
+    <string name="storage_permission_message">Storage access is needed to save and upload documents</string>
+    
+    <!-- Login Screen -->
+    <string name="login_screen_title">Driver Login</string>
+    <string name="login_button">Log In</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="signup_prompt">Don\'t have an account? Sign Up</string>
+    <string name="email_hint">Email</string>
+    <string name="password_hint">Password</string>
+    <string name="phone_hint">Phone Number</string>
+    
+    <!-- Bottom Navigation Tabs -->
+    <string name="home_tab">Home</string>
+    <string name="loads_tab">Loads</string>
+    <string name="map_tab">Map</string>
+    <string name="earnings_tab">Earnings</string>
+    <string name="profile_tab">Profile</string>
+    
+    <!-- Home Dashboard -->
+    <string name="current_load">Current Load</string>
+    <string name="recommended_loads">Recommended Loads</string>
+    <string name="efficiency_score">Efficiency Score</string>
+    <string name="available_hours">Available Hours</string>
+    <string name="driving_hours">Drive</string>
+    <string name="duty_hours">Duty</string>
+    <string name="cycle_hours">Cycle</string>
+    
+    <!-- Load Details -->
+    <string name="view_details">View Details</string>
+    <string name="accept_load">Accept Load</string>
+    <string name="decline_load">Decline Load</string>
+    <string name="navigate">Navigate</string>
+    <string name="call_facility">Call Facility</string>
+    <string name="pickup">Pickup</string>
+    <string name="delivery">Delivery</string>
+    <string name="load_details">Load Details</string>
+    <string name="payment">Payment</string>
+    <string name="why_this_score">Why This Score?</string>
+    
+    <!-- Load Status Updates -->
+    <string name="arrived_at_pickup">Arrived at Pickup</string>
+    <string name="loading_complete">Loading Complete</string>
+    <string name="departed_pickup">Departed Pickup</string>
+    <string name="arrived_at_delivery">Arrived at Delivery</string>
+    <string name="delivery_complete">Delivery Complete</string>
+    <string name="update_status">Update Status</string>
+    
+    <!-- Earnings Screen -->
+    <string name="weekly_earnings">Weekly Earnings</string>
+    <string name="monthly_earnings">Monthly Earnings</string>
+    <string name="leaderboard">Leaderboard</string>
+    <string name="achievements">Achievements</string>
+    <string name="rewards">Rewards</string>
+    
+    <!-- Profile Screen -->
+    <string name="settings">Settings</string>
+    <string name="notifications">Notifications</string>
+    <string name="help_support">Help &amp; Support</string>
+    <string name="logout">Log Out</string>
+    
+    <!-- Offline Mode -->
+    <string name="offline_mode">Offline Mode</string>
+    <string name="sync_data">Sync Data</string>
+    
+    <!-- Error Messages -->
+    <string name="network_error">Network Error</string>
+    <string name="network_error_message">Unable to connect to the server. Please check your internet connection.</string>
+    <string name="retry">Retry</string>
+    <string name="continue_offline">Continue Offline</string>
+    <string name="location_services_disabled">Location Services Disabled</string>
+    <string name="location_services_message">Please enable location services to use all features of this app</string>
+    <string name="enable_location">Enable Location</string>
+    
+    <!-- Map Features -->
+    <string name="smart_hub">Smart Hub</string>
+    <string name="bonus_zone">Bonus Zone</string>
+    <string name="bonus_alert">Bonus Zone Alert</string>
+    <string name="bonus_alert_message">You\'re entering a bonus zone! Complete loads in this area for extra earnings.</string>
+    
+    <!-- Notifications -->
+    <string name="new_load_notification_title">New Load Available</string>
+    <string name="new_load_notification_message">A new high-efficiency load is available in your area</string>
+    <string name="status_update_notification_title">Load Status Update</string>
+    <string name="achievement_unlocked_notification_title">Achievement Unlocked</string>
+    <string name="reminder_notification_title">Reminder</string>
+    <string name="background_tracking_notification_title">Freight Optimization Active</string>
+    <string name="background_tracking_notification_message">Tracking your location to optimize your route</string>
+    
+    <!-- Dialog Actions -->
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+    <string name="ok">OK</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    
+    <!-- Loading States -->
+    <string name="loading">Loading...</string>
+    <string name="error_occurred">An error occurred</string>
+    <string name="try_again">Try Again</string>
+    
+    <!-- Success Messages -->
+    <string name="success">Success</string>
+    <string name="load_accepted">Load Accepted</string>
+    <string name="load_declined">Load Declined</string>
+    <string name="status_updated">Status Updated</string>
+    
+    <!-- Empty States -->
+    <string name="no_loads_available">No loads available at this time</string>
+    <string name="check_back_later">Please check back later for new opportunities</string>
+    
+    <!-- Filtering and Sorting -->
+    <string name="filter">Filter</string>
+    <string name="sort_by">Sort By</string>
+    <string name="efficiency_score_filter">Efficiency Score</string>
+    <string name="distance_filter">Distance</string>
+    <string name="rate_filter">Rate</string>
+    <string name="pickup_time_filter">Pickup Time</string>
+    <string name="apply_filters">Apply Filters</string>
+    <string name="reset_filters">Reset Filters</string>
+    
+    <!-- Deep Links -->
+    <string name="deep_link_scheme">freightoptimization</string>
+</resources>
