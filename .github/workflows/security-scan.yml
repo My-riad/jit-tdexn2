@@ -100,7 +100,7 @@ jobs:
         run: docker build -t ${{ matrix.service }}:latest src/backend/${{ matrix.service }}
       
       - name: Scan with Trivy
-        uses: aquasecurity/trivy-action@0.11.0
+        uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: '${{ matrix.service }}:latest'
           format: 'sarif'
