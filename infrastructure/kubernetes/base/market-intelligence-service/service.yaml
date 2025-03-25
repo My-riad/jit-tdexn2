@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: market-intelligence-service
+  namespace: default
+  labels:
+    app: market-intelligence-service
+    component: market-intelligence
+    part-of: freight-optimization
+  annotations:
+    description: "Service for the Market Intelligence Service that analyzes market conditions and adjusts pricing based on supply/demand dynamics"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app: market-intelligence-service
+  sessionAffinity: None
