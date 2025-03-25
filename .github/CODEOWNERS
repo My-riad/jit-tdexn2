@@ -1,0 +1,26 @@
+# Each line is a file pattern followed by one or more owners
+
+# These owners will be the default owners for everything in the repo
+* @project-leads
+
+# CI/CD Workflows
+.github/workflows/* @devops-team
+
+# Backend Code
+src/backend/common/**/* @backend-leads
+src/backend/*-service/**/* @backend-team
+src/backend/optimization-engine/**/* @ai-team @backend-leads
+src/backend/database/**/* @database-team @backend-leads
+
+# Frontend Code
+src/web/common/**/* @frontend-leads
+src/web/shared/**/* @frontend-leads
+src/web/driver-app/**/* @mobile-team @frontend-leads
+src/web/carrier-portal/**/* @frontend-team
+src/web/shipper-portal/**/* @frontend-team
+
+# Infrastructure
+infrastructure/**/* @devops-team
+
+# Documentation
+docs/**/* @project-leads @technical-writers
