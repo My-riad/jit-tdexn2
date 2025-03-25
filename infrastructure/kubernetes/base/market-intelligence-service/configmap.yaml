@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: market-intelligence-service-config
+  namespace: default
+  labels:
+    app: market-intelligence-service
+    component: market-intelligence
+    part-of: freight-optimization
+  annotations:
+    description: "Configuration for the Market Intelligence Service that analyzes market conditions and adjusts pricing based on supply/demand dynamics"
+data:
+  # Basic service configuration
+  ENABLE_SWAGGER: "true"
+  LOG_LEVEL: "info"
+  SERVICE_PORT: "3000"
+  
+  # Database configuration
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "freight_optimization"
+  
+  # Redis configuration
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  RATE_CACHE_TTL: "1800"        # 30 minutes cache for rate data
+  FORECAST_CACHE_TTL: "3600"    # 1 hour cache for forecast data
+  HOTSPOT_CACHE_TTL: "1800"     # 30 minutes cache for hotspot data
+  
+  # Kafka configuration
+  KAFKA_BROKERS: "kafka:9092"
+  RATE_CALCULATION_TOPIC: "rate-calculation-events"
+  DEMAND_FORECAST_TOPIC: "demand-forecast-events"
+  HOTSPOT_DETECTION_TOPIC: "hotspot-detection-events"
+  AUCTION_EVENTS_TOPIC: "auction-events"
+  MARKET_CONSUMER_GROUP: "market-intelligence-service-group"
+  LOAD_CREATION_TOPIC: "load-creation-events"
+  LOAD_COMPLETION_TOPIC: "load-completion-events"
+  
+  # Machine Learning model configuration
+  DEFAULT_CONFIDENCE_THRESHOLD: "0.7"
+  SAGEMAKER_RATE_MODEL_ENDPOINT: "freight-rate-prediction"
+  SAGEMAKER_DEMAND_MODEL_ENDPOINT: "freight-demand-forecast"
+  SAGEMAKER_HOTSPOT_MODEL_ENDPOINT: "freight-hotspot-detection"
+  
+  # Rate calculation parameters
+  RATE_ADJUSTMENT_INTERVAL: "900000"      # 15 minutes in milliseconds
+  BASE_MARKET_RATE_WEIGHT: "0.4"          # 40% weight for base market rate
+  SUPPLY_DEMAND_WEIGHT: "0.25"            # 25% weight for supply/demand ratio
+  HISTORICAL_TREND_WEIGHT: "0.15"         # 15% weight for historical trends
+  URGENCY_FACTOR_WEIGHT: "0.1"            # 10% weight for urgency factor
+  NETWORK_OPTIMIZATION_WEIGHT: "0.1"      # 10% weight for network optimization
+  MARKET_RATE_BASE_ADJUSTMENT: "0.1"      # 10% base adjustment capability
+  
+  # Demand forecasting parameters
+  DEMAND_FORECAST_INTERVAL: "3600000"     # 1 hour in milliseconds
+  
+  # Hotspot detection parameters
+  HOTSPOT_DETECTION_INTERVAL: "1800000"   # 30 minutes in milliseconds
+  HOTSPOT_DEFAULT_RADIUS: "50"            # 50 miles radius for hotspots
+  HOTSPOT_MIN_CONFIDENCE: "0.75"          # 75% minimum confidence for hotspot detection
+  HOTSPOT_VALIDITY_DAYS: "2"              # Hotspots valid for 2 days
+  
+  # Auction parameters
+  AUCTION_MAX_DURATION_MINUTES: "60"      # 1 hour maximum auction duration
+  AUCTION_MIN_PARTICIPANTS: "3"           # Minimum 3 participants for an auction
+  AUCTION_NETWORK_WEIGHT: "0.6"           # 60% weight for network optimization in auction scoring
+  AUCTION_PRICE_WEIGHT: "0.4"             # 40% weight for price in auction scoring
+  
+  # External data integration
+  EXTERNAL_MARKET_DATA_REFRESH_INTERVAL: "3600000"  # 1 hour in milliseconds
+  ENABLE_EXTERNAL_MARKET_DATA: "true"
+  
+  # Elasticsearch configuration for analytics
+  ELASTICSEARCH_HOST: "elasticsearch"
+  ELASTICSEARCH_PORT: "9200"
+  ELASTICSEARCH_INDEX_PREFIX: "market-intelligence"
