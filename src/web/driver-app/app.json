@@ -1,0 +1,83 @@
+{
+  "name": "freight-optimization-driver",
+  "displayName": "Freight Optimization",
+  "expo": {
+    "description": "AI-driven Freight Optimization Platform mobile application for truck drivers",
+    "slug": "freight-optimization-driver",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A73E8"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "enabled": false
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.freightoptimization.driver",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to find nearby loads and optimize your route.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses your location to track delivery progress and provide real-time updates to shippers.",
+        "NSLocationAlwaysUsageDescription": "This app uses your location to track delivery progress and provide real-time updates to shippers.",
+        "NSCameraUsageDescription": "This app uses your camera to scan documents and capture proof of delivery.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload documents and proof of delivery.",
+        "NSPhotoLibraryAddUsageDescription": "This app needs permission to save photos to your library for proof of delivery documentation.",
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification",
+          "location"
+        ]
+      },
+      "config": {
+        "googleMapsApiKey": "YOUR_IOS_GOOGLE_MAPS_API_KEY"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1A73E8"
+      },
+      "package": "com.freightoptimization.driver",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "WAKE_LOCK"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "react-native-maps",
+      "react-native-geolocation-service",
+      "react-native-push-notification"
+    ],
+    "scheme": "freightoptimization",
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#1A73E8",
+      "androidMode": "default",
+      "androidCollapsedTitle": "Freight Optimization"
+    }
+  }
+}
