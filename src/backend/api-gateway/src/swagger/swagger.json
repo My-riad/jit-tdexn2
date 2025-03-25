@@ -1,0 +1,4833 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "AI-driven Freight Optimization Platform API",
+    "description": "API documentation for the AI-driven Freight Optimization Platform, which transforms the trucking industry by eliminating deadhead miles through dynamic load coordination.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support",
+      "email": "api-support@freightoptimization.com",
+      "url": "https://freightoptimization.com/support"
+    },
+    "license": {
+      "name": "Proprietary",
+      "url": "https://freightoptimization.com/terms"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "Production API"
+    },
+    {
+      "url": "https://staging-api.freightoptimization.com/api/v1",
+      "description": "Staging API"
+    },
+    {
+      "url": "https://dev-api.freightoptimization.com/api/v1",
+      "description": "Development API"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "Authentication and authorization operations"
+    },
+    {
+      "name": "Drivers",
+      "description": "Operations related to truck drivers"
+    },
+    {
+      "name": "Loads",
+      "description": "Operations related to freight loads"
+    },
+    {
+      "name": "Carriers",
+      "description": "Operations related to trucking companies and fleet operators"
+    },
+    {
+      "name": "Shippers",
+      "description": "Operations related to freight shippers"
+    },
+    {
+      "name": "Tracking",
+      "description": "Operations related to real-time position tracking"
+    },
+    {
+      "name": "Gamification",
+      "description": "Operations related to driver scoring, achievements, and rewards"
+    },
+    {
+      "name": "Market Intelligence",
+      "description": "Operations related to market rates, forecasts, and hotspots"
+    },
+    {
+      "name": "Integration",
+      "description": "Operations related to third-party integrations"
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Authenticate a user and get access token",
+        "description": "Authenticates a user with email/password and returns JWT tokens for API access",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful authentication",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Register a new user",
+        "description": "Creates a new user account with the provided information",
+        "operationId": "register",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User successfully registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "User already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Refresh access token",
+        "description": "Get a new access token using a valid refresh token",
+        "operationId": "refreshToken",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token successfully refreshed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired refresh token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Logout user",
+        "description": "Invalidate the current refresh token",
+        "operationId": "logout",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully logged out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Successfully logged out"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Request password reset",
+        "description": "Send a password reset link to the user's email",
+        "operationId": "forgotPassword",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "user@example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset email sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Password reset email sent"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Reset password",
+        "description": "Reset user password using a valid reset token",
+        "operationId": "resetPassword",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "token",
+                  "password"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "example": "reset-token-123"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "newSecurePassword123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password successfully reset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Password successfully reset"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drivers": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Get all drivers",
+        "description": "Retrieve a list of drivers with optional filtering and pagination",
+        "operationId": "getDrivers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "carrier_id",
+            "in": "query",
+            "description": "Filter by carrier ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by driver status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "INACTIVE",
+                "AVAILABLE",
+                "ON_DUTY",
+                "DRIVING",
+                "OFF_DUTY",
+                "SLEEPER_BERTH",
+                "SUSPENDED"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of drivers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DriverSummary"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Create a new driver",
+        "description": "Create a new driver with the provided information",
+        "operationId": "createDriver",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DriverCreationParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Driver created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Driver"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drivers/{driver_id}": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Get driver by ID",
+        "description": "Retrieve detailed information about a specific driver",
+        "operationId": "getDriverById",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "description": "ID of the driver to retrieve",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Driver details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverWithDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Driver not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Update driver",
+        "description": "Update an existing driver's information",
+        "operationId": "updateDriver",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "description": "ID of the driver to update",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DriverUpdateParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Driver updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Driver"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Driver not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Delete driver",
+        "description": "Delete a driver (soft delete)",
+        "operationId": "deleteDriver",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "description": "ID of the driver to delete",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Driver deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Driver not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drivers/{driver_id}/availability": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Get driver availability",
+        "description": "Retrieve the current availability status of a driver",
+        "operationId": "getDriverAvailability",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "description": "ID of the driver",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Driver availability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverAvailability"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Driver not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Update driver availability",
+        "description": "Update the availability status of a driver",
+        "operationId": "updateDriverAvailability",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "description": "ID of the driver",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "available_from",
+                  "available_until"
+                ],
+                "properties": {
+                  "status": {
+                    "$ref": "#/components/schemas/DriverStatus"
+                  },
+                  "current_location": {
+                    "type": "object",
+                    "properties": {
+                      "latitude": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 41.8781
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "format": "float",
+                        "example": -87.6298
+                      }
+                    }
+                  },
+                  "available_from": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "available_until": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Availability updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverAvailability"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Driver not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drivers/{driver_id}/hos": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Get driver HOS data",
+        "description": "Retrieve the current Hours of Service (HOS) data for a driver",
+        "operationId": "getDriverHOS",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "description": "ID of the driver",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Driver HOS data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverHOS"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Driver not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Update driver HOS status",
+        "description": "Update the Hours of Service (HOS) status for a driver",
+        "operationId": "updateDriverHOS",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "description": "ID of the driver",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "$ref": "#/components/schemas/HOSStatus"
+                  },
+                  "location": {
+                    "type": "object",
+                    "properties": {
+                      "latitude": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 41.8781
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "format": "float",
+                        "example": -87.6298
+                      }
+                    }
+                  },
+                  "vehicle_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "HOS status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverHOS"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Driver not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drivers/{driver_id}/performance": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Get driver performance metrics",
+        "description": "Retrieve performance metrics for a driver over a specified time period",
+        "operationId": "getDriverPerformanceMetrics",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "description": "ID of the driver",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "description": "Start date for metrics (ISO format)",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "description": "End date for metrics (ISO format)",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Driver performance metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverPerformanceMetrics"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Driver not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loads": {
+      "get": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Get all loads",
+        "description": "Retrieve a list of loads with optional filtering and pagination",
+        "operationId": "getLoads",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "shipper_id",
+            "in": "query",
+            "description": "Filter by shipper ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by load status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CREATED",
+                "PENDING",
+                "OPTIMIZING",
+                "AVAILABLE",
+                "RESERVED",
+                "ASSIGNED",
+                "IN_TRANSIT",
+                "AT_PICKUP",
+                "LOADED",
+                "AT_DROPOFF",
+                "DELIVERED",
+                "COMPLETED",
+                "CANCELLED",
+                "EXPIRED",
+                "DELAYED",
+                "EXCEPTION",
+                "RESOLVED"
+              ]
+            }
+          },
+          {
+            "name": "equipment_type",
+            "in": "query",
+            "description": "Filter by equipment type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRY_VAN",
+                "REFRIGERATED",
+                "FLATBED"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of loads",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Load"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Create a new load",
+        "description": "Create a new load with the provided information",
+        "operationId": "createLoad",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadCreationParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Load created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Load"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loads/{load_id}": {
+      "get": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Get load by ID",
+        "description": "Retrieve detailed information about a specific load",
+        "operationId": "getLoadById",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "load_id",
+            "in": "path",
+            "description": "ID of the load to retrieve",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Load details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadWithDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Load not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Update load",
+        "description": "Update an existing load's information",
+        "operationId": "updateLoad",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "load_id",
+            "in": "path",
+            "description": "ID of the load to update",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadUpdateParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Load updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Load"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Load not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Delete load",
+        "description": "Delete a load",
+        "operationId": "deleteLoad",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "load_id",
+            "in": "path",
+            "description": "ID of the load to delete",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Load deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Load not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loads/{load_id}/status": {
+      "put": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Update load status",
+        "description": "Update the status of a load",
+        "operationId": "updateLoadStatus",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "load_id",
+            "in": "path",
+            "description": "ID of the load",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadStatusUpdateParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "load_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "$ref": "#/components/schemas/LoadStatus"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Load not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loads/{load_id}/documents": {
+      "get": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Get load documents",
+        "description": "Retrieve documents associated with a load",
+        "operationId": "getLoadDocuments",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "load_id",
+            "in": "path",
+            "description": "ID of the load",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of load documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoadDocument"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Load not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Upload load document",
+        "description": "Upload a document for a load",
+        "operationId": "uploadLoadDocument",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "load_id",
+            "in": "path",
+            "description": "ID of the load",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "document_type",
+                  "file"
+                ],
+                "properties": {
+                  "document_type": {
+                    "$ref": "#/components/schemas/LoadDocumentType"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadDocument"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Load not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loads/{load_id}/documents/{document_id}": {
+      "get": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Get load document",
+        "description": "Retrieve a specific document for a load",
+        "operationId": "getLoadDocument",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "load_id",
+            "in": "path",
+            "description": "ID of the load",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "path",
+            "description": "ID of the document",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document details or file stream",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadDocument"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Delete load document",
+        "description": "Delete a document associated with a load",
+        "operationId": "deleteLoadDocument",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "load_id",
+            "in": "path",
+            "description": "ID of the load",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "path",
+            "description": "ID of the document",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Document deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loads/{load_id}/accept": {
+      "post": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Accept load",
+        "description": "Driver accepts a load assignment",
+        "operationId": "acceptLoad",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "load_id",
+            "in": "path",
+            "description": "ID of the load to accept",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "vehicle_id"
+                ],
+                "properties": {
+                  "vehicle_id": {
+                    "type": "string",
+                    "description": "ID of the vehicle to use for this load"
+                  },
+                  "reservation_id": {
+                    "type": "string",
+                    "description": "ID of an existing reservation (if applicable)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Load accepted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadAssignment"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Load not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Load already assigned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loads/{load_id}/decline": {
+      "post": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Decline load",
+        "description": "Driver declines a load recommendation",
+        "operationId": "declineLoad",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "load_id",
+            "in": "path",
+            "description": "ID of the load to decline",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason_code"
+                ],
+                "properties": {
+                  "reason_code": {
+                    "type": "string",
+                    "enum": [
+                      "DISTANCE",
+                      "RATE",
+                      "SCHEDULE",
+                      "EQUIPMENT",
+                      "LOCATION",
+                      "OTHER"
+                    ],
+                    "description": "Reason for declining the load"
+                  },
+                  "comments": {
+                    "type": "string",
+                    "description": "Additional comments about the decline reason"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Load declined successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "load_id": {
+                      "type": "string"
+                    },
+                    "driver_id": {
+                      "type": "string"
+                    },
+                    "reason_code": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Load not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loads/search": {
+      "post": {
+        "tags": [
+          "Loads"
+        ],
+        "summary": "Search loads",
+        "description": "Search for loads based on various criteria",
+        "operationId": "searchLoads",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadSearchParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Load"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tracking/positions": {
+      "post": {
+        "tags": [
+          "Tracking"
+        ],
+        "summary": "Update position",
+        "description": "Update the current position of a driver or vehicle",
+        "operationId": "updatePosition",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "entity_id",
+                  "entity_type",
+                  "latitude",
+                  "longitude"
+                ],
+                "properties": {
+                  "entity_id": {
+                    "type": "string",
+                    "description": "ID of the driver or vehicle"
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "enum": [
+                      "DRIVER",
+                      "VEHICLE"
+                    ],
+                    "description": "Type of entity being tracked"
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 41.8781
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "format": "float",
+                    "example": -87.6298
+                  },
+                  "heading": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "Direction in degrees (0-360)",
+                    "example": 90
+                  },
+                  "speed": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "Speed in mph",
+                    "example": 65
+                  },
+                  "accuracy": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "Accuracy in meters",
+                    "example": 5
+                  },
+                  "source": {
+                    "type": "string",
+                    "description": "Source of the position data",
+                    "example": "mobile_app"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Position updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "entity_type": {
+                      "type": "string"
+                    },
+                    "position_id": {
+                      "type": "string"
+                    },
+                    "recorded_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tracking/positions/{entity_id}": {
+      "get": {
+        "tags": [
+          "Tracking"
+        ],
+        "summary": "Get current position",
+        "description": "Get the current position of a driver or vehicle",
+        "operationId": "getCurrentPosition",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "description": "ID of the driver or vehicle",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity_type",
+            "in": "query",
+            "description": "Type of entity",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRIVER",
+                "VEHICLE"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current position",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "entity_type": {
+                      "type": "string"
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "heading": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "accuracy": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "recorded_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tracking/history/{entity_id}": {
+      "get": {
+        "tags": [
+          "Tracking"
+        ],
+        "summary": "Get position history",
+        "description": "Get the position history of a driver or vehicle",
+        "operationId": "getPositionHistory",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "description": "ID of the driver or vehicle",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity_type",
+            "in": "query",
+            "description": "Type of entity",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRIVER",
+                "VEHICLE"
+              ]
+            }
+          },
+          {
+            "name": "start_time",
+            "in": "query",
+            "description": "Start time for history (ISO format)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "description": "End time for history (ISO format)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of positions to return",
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 1000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Position history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "position_id": {
+                        "type": "string"
+                      },
+                      "entity_id": {
+                        "type": "string"
+                      },
+                      "entity_type": {
+                        "type": "string"
+                      },
+                      "latitude": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "heading": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "speed": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "accuracy": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "recorded_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tracking/eta/{entity_id}": {
+      "get": {
+        "tags": [
+          "Tracking"
+        ],
+        "summary": "Get ETA",
+        "description": "Get the estimated time of arrival for a driver or vehicle to a destination",
+        "operationId": "getETA",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "description": "ID of the driver or vehicle",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity_type",
+            "in": "query",
+            "description": "Type of entity",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRIVER",
+                "VEHICLE"
+              ]
+            }
+          },
+          {
+            "name": "destination_id",
+            "in": "query",
+            "description": "ID of the destination (load location)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ETA information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "entity_type": {
+                      "type": "string"
+                    },
+                    "destination_id": {
+                      "type": "string"
+                    },
+                    "eta": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "distance_remaining": {
+                      "type": "number",
+                      "format": "float",
+                      "description": "Distance in miles"
+                    },
+                    "duration_remaining": {
+                      "type": "integer",
+                      "description": "Duration in minutes"
+                    },
+                    "confidence": {
+                      "type": "number",
+                      "format": "float",
+                      "description": "Confidence score (0-1)"
+                    },
+                    "calculated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity or destination not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tracking/nearby": {
+      "get": {
+        "tags": [
+          "Tracking"
+        ],
+        "summary": "Find nearby entities",
+        "description": "Find drivers or vehicles near a specific location",
+        "operationId": "findNearbyEntities",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "latitude",
+            "in": "query",
+            "description": "Latitude of the center point",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "description": "Longitude of the center point",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          {
+            "name": "radius",
+            "in": "query",
+            "description": "Search radius in miles",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "minimum": 0.1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "entity_type",
+            "in": "query",
+            "description": "Type of entity to find",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRIVER",
+                "VEHICLE"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results to return",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nearby entities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "entity_id": {
+                        "type": "string"
+                      },
+                      "entity_type": {
+                        "type": "string"
+                      },
+                      "latitude": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "distance": {
+                        "type": "number",
+                        "format": "float",
+                        "description": "Distance in miles"
+                      },
+                      "recorded_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/scores/{driver_id}": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get driver score",
+        "description": "Get the efficiency score and components for a driver",
+        "operationId": "getDriverScore",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "description": "ID of the driver",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Driver score",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverScore"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Driver not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/scores/history/{driver_id}": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get driver score history",
+        "description": "Get the historical efficiency scores for a driver",
+        "operationId": "getDriverScoreHistory",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "description": "ID of the driver",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "description": "Start date for history (ISO format)",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "description": "End date for history (ISO format)",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "interval",
+            "in": "query",
+            "description": "Grouping interval",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month"
+              ],
+              "default": "day"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Score history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "date": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "total_score": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "empty_miles_score": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "network_contribution_score": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "on_time_score": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "hub_utilization_score": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "fuel_efficiency_score": {
+                        "type": "number",
+                        "format": "float"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Driver not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/achievements": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get all achievements",
+        "description": "Get a list of all available achievements in the system",
+        "operationId": "getAllAchievements",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by achievement category",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "EFFICIENCY",
+                "NETWORK_CONTRIBUTION",
+                "ON_TIME_DELIVERY",
+                "SMART_HUB_UTILIZATION",
+                "FUEL_EFFICIENCY",
+                "SAFETY",
+                "MILESTONE"
+              ]
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "description": "Filter by achievement level",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BRONZE",
+                "SILVER",
+                "GOLD",
+                "PLATINUM",
+                "DIAMOND"
+              ]
+            }
+          },
+          {
+            "name": "active",
+            "in": "query",
+            "description": "Filter by active status",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of achievements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Achievement"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/achievements/{driver_id}": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get driver achievements",
+        "description": "Get the achievements earned by a driver",
+        "operationId": "getDriverAchievements",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "description": "ID of the driver",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by achievement category",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "EFFICIENCY",
+                "NETWORK_CONTRIBUTION",
+                "ON_TIME_DELIVERY",
+                "SMART_HUB_UTILIZATION",
+                "FUEL_EFFICIENCY",
+                "SAFETY",
+                "MILESTONE"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Driver achievements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DriverAchievement"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Driver not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/achievements/progress/{driver_id}": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get achievement progress",
+        "description": "Get the progress of a driver toward earning achievements",
+        "operationId": "getAchievementProgress",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "description": "ID of the driver",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by achievement category",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "EFFICIENCY",
+                "NETWORK_CONTRIBUTION",
+                "ON_TIME_DELIVERY",
+                "SMART_HUB_UTILIZATION",
+                "FUEL_EFFICIENCY",
+                "SAFETY",
+                "MILESTONE"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Achievement progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AchievementProgress"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Driver not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/leaderboards": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get leaderboards",
+        "description": "Get driver leaderboards based on efficiency scores",
+        "operationId": "getLeaderboards",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "timeframe",
+            "in": "query",
+            "description": "Timeframe for the leaderboard",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "daily",
+                "weekly",
+                "monthly",
+                "all_time"
+              ],
+              "default": "weekly"
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "description": "Geographic region filter",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carrier_id",
+            "in": "query",
+            "description": "Filter by carrier ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Leaderboard results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "timeframe": {
+                      "type": "string"
+                    },
+                    "region": {
+                      "type": "string"
+                    },
+                    "start_date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "end_date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "rankings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "rank": {
+                            "type": "integer"
+                          },
+                          "driver_id": {
+                            "type": "string"
+                          },
+                          "driver_name": {
+                            "type": "string"
+                          },
+                          "carrier_id": {
+                            "type": "string"
+                          },
+                          "carrier_name": {
+                            "type": "string"
+                          },
+                          "score": {
+                            "type": "number",
+                            "format": "float"
+                          },
+                          "previous_rank": {
+                            "type": "integer"
+                          },
+                          "bonus_amount": {
+                            "type": "number",
+                            "format": "float"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/bonus-zones": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get bonus zones",
+        "description": "Get active bonus zones where drivers can earn extra money",
+        "operationId": "getBonusZones",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "latitude",
+            "in": "query",
+            "description": "Current latitude for proximity filtering",
+            "schema": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "description": "Current longitude for proximity filtering",
+            "schema": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          {
+            "name": "radius",
+            "in": "query",
+            "description": "Search radius in miles",
+            "schema": {
+              "type": "number",
+              "format": "float"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active bonus zones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "zone_id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "boundary": {
+                        "type": "object",
+                        "description": "GeoJSON polygon representing the zone boundary"
+                      },
+                      "center": {
+                        "type": "object",
+                        "properties": {
+                          "latitude": {
+                            "type": "number",
+                            "format": "float"
+                          },
+                          "longitude": {
+                            "type": "number",
+                            "format": "float"
+                          }
+                        }
+                      },
+                      "multiplier": {
+                        "type": "number",
+                        "format": "float",
+                        "description": "Bonus multiplier (e.g., 1.2 = 20% bonus)"
+                      },
+                      "reason": {
+                        "type": "string",
+                        "description": "Reason for the bonus zone"
+                      },
+                      "start_time": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "end_time": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "distance": {
+                        "type": "number",
+                        "format": "float",
+                        "description": "Distance in miles (if latitude/longitude provided)"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/market/rates": {
+      "get": {
+        "tags": [
+          "Market Intelligence"
+        ],
+        "summary": "Get market rates",
+        "description": "Get current market rates for freight lanes",
+        "operationId": "getMarketRates",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "origin_region",
+            "in": "query",
+            "description": "Origin region code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "destination_region",
+            "in": "query",
+            "description": "Destination region code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "equipment_type",
+            "in": "query",
+            "description": "Equipment type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRY_VAN",
+                "REFRIGERATED",
+                "FLATBED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Market rates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "origin_region": {
+                        "type": "string"
+                      },
+                      "destination_region": {
+                        "type": "string"
+                      },
+                      "equipment_type": {
+                        "type": "string"
+                      },
+                      "average_rate": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "min_rate": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "max_rate": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "rate_per_mile": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "sample_size": {
+                        "type": "integer"
+                      },
+                      "recorded_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/market/rates/adjust": {
+      "post": {
+        "tags": [
+          "Market Intelligence"
+        ],
+        "summary": "Calculate adjusted rate",
+        "description": "Calculate an adjusted rate based on market conditions and optimization factors",
+        "operationId": "calculateAdjustedRate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "origin_region",
+                  "destination_region",
+                  "equipment_type",
+                  "base_rate"
+                ],
+                "properties": {
+                  "origin_region": {
+                    "type": "string"
+                  },
+                  "destination_region": {
+                    "type": "string"
+                  },
+                  "equipment_type": {
+                    "type": "string",
+                    "enum": [
+                      "DRY_VAN",
+                      "REFRIGERATED",
+                      "FLATBED"
+                    ]
+                  },
+                  "base_rate": {
+                    "type": "number",
+                    "format": "float"
+                  },
+                  "distance": {
+                    "type": "number",
+                    "format": "float"
+                  },
+                  "urgency_factor": {
+                    "type": "number",
+                    "format": "float",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "network_optimization_value": {
+                    "type": "number",
+                    "format": "float",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Adjusted rate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "base_rate": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "adjusted_rate": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "adjustment_factors": {
+                      "type": "object",
+                      "properties": {
+                        "market_conditions": {
+                          "type": "number",
+                          "format": "float"
+                        },
+                        "supply_demand_ratio": {
+                          "type": "number",
+                          "format": "float"
+                        },
+                        "urgency": {
+                          "type": "number",
+                          "format": "float"
+                        },
+                        "network_optimization": {
+                          "type": "number",
+                          "format": "float"
+                        }
+                      }
+                    },
+                    "rate_per_mile": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "market_comparison": {
+                      "type": "string",
+                      "enum": [
+                        "below_market",
+                        "at_market",
+                        "above_market"
+                      ]
+                    },
+                    "calculated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/market/forecasts": {
+      "get": {
+        "tags": [
+          "Market Intelligence"
+        ],
+        "summary": "Get demand forecasts",
+        "description": "Get demand forecasts for freight lanes",
+        "operationId": "getDemandForecasts",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "region",
+            "in": "query",
+            "description": "Region code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "description": "Forecast timeframe",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "24h",
+                "48h",
+                "72h",
+                "7d"
+              ],
+              "default": "48h"
+            }
+          },
+          {
+            "name": "equipment_type",
+            "in": "query",
+            "description": "Equipment type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRY_VAN",
+                "REFRIGERATED",
+                "FLATBED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Demand forecasts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "region": {
+                        "type": "string"
+                      },
+                      "equipment_type": {
+                        "type": "string"
+                      },
+                      "forecast_period": {
+                        "type": "string"
+                      },
+                      "start_time": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "end_time": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "demand_level": {
+                        "type": "string",
+                        "enum": [
+                          "very_low",
+                          "low",
+                          "moderate",
+                          "high",
+                          "very_high"
+                        ]
+                      },
+                      "demand_score": {
+                        "type": "number",
+                        "format": "float",
+                        "minimum": 0,
+                        "maximum": 10
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "securePassword123"
+          },
+          "device_id": {
+            "type": "string",
+            "example": "device-uuid-123"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "name",
+          "user_type"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "securePassword123"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+15551234567"
+          },
+          "user_type": {
+            "type": "string",
+            "enum": [
+              "DRIVER",
+              "CARRIER_ADMIN",
+              "SHIPPER_ADMIN",
+              "PLATFORM_ADMIN"
+            ],
+            "example": "DRIVER"
+          },
+          "company_id": {
+            "type": "string",
+            "example": "carrier-123"
+          },
+          "device_id": {
+            "type": "string",
+            "example": "device-uuid-123"
+          }
+        }
+      },
+      "RefreshTokenRequest": {
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "refresh_token": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "token_type": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "example": 3600
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "user-123"
+              },
+              "email": {
+                "type": "string",
+                "example": "user@example.com"
+              },
+              "name": {
+                "type": "string",
+                "example": "John Doe"
+              },
+              "user_type": {
+                "type": "string",
+                "example": "DRIVER"
+              },
+              "company_id": {
+                "type": "string",
+                "example": "carrier-123"
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Unauthorized"
+          },
+          "message": {
+            "type": "string",
+            "example": "Invalid credentials"
+          },
+          "status_code": {
+            "type": "integer",
+            "example": 401
+          }
+        }
+      },
+      "ValidationErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Validation Error"
+          },
+          "message": {
+            "type": "string",
+            "example": "The given data was invalid"
+          },
+          "status_code": {
+            "type": "integer",
+            "example": 422
+          },
+          "errors": {
+            "type": "object",
+            "example": {
+              "email": [
+                "The email field is required"
+              ],
+              "password": [
+                "The password must be at least 8 characters"
+              ]
+            }
+          }
+        }
+      },
+      "DriverSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "driver-123"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "carrier_id": {
+            "type": "string",
+            "example": "carrier-123"
+          },
+          "carrier_name": {
+            "type": "string",
+            "example": "ABC Trucking"
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE"
+          },
+          "current_location": {
+            "type": "object",
+            "properties": {
+              "latitude": {
+                "type": "number",
+                "format": "float",
+                "example": 41.8781
+              },
+              "longitude": {
+                "type": "number",
+                "format": "float",
+                "example": -87.6298
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "hos_status": {
+            "type": "string",
+            "example": "ON_DUTY"
+          },
+          "availability_status": {
+            "type": "string",
+            "example": "AVAILABLE"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Driver": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "driver-123"
+          },
+          "user_id": {
+            "type": "string",
+            "example": "user-123"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john.doe@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+15551234567"
+          },
+          "carrier_id": {
+            "type": "string",
+            "example": "carrier-123"
+          },
+          "license_number": {
+            "type": "string",
+            "example": "DL1234567"
+          },
+          "license_state": {
+            "type": "string",
+            "example": "IL"
+          },
+          "license_expiration": {
+            "type": "string",
+            "format": "date",
+            "example": "2025-12-31"
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE"
+          },
+          "profile_image_url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://api.freightoptimization.com/images/drivers/profile-123.jpg"
+          },
+          "current_location": {
+            "type": "object",
+            "properties": {
+              "latitude": {
+                "type": "number",
+                "format": "float",
+                "example": 41.8781
+              },
+              "longitude": {
+                "type": "number",
+                "format": "float",
+                "example": -87.6298
+              },
+              "address": {
+                "type": "string",
+                "example": "Chicago, IL"
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "home_location": {
+            "type": "object",
+            "properties": {
+              "latitude": {
+                "type": "number",
+                "format": "float",
+                "example": 41.9742
+              },
+              "longitude": {
+                "type": "number",
+                "format": "float",
+                "example": -87.9073
+              },
+              "address": {
+                "type": "string",
+                "example": "123 Main St, Schaumburg, IL 60173"
+              }
+            }
+          },
+          "hos_status": {
+            "type": "string",
+            "example": "ON_DUTY"
+          },
+          "hos_updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "availability_status": {
+            "type": "string",
+            "example": "AVAILABLE"
+          },
+          "available_from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "available_until": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "preferences": {
+            "type": "object",
+            "properties": {
+              "max_deadhead_miles": {
+                "type": "integer",
+                "example": 100
+              },
+              "preferred_routes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "IL-CA"
+                }
+              },
+              "preferred_load_types": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "DRY_VAN"
+                }
+              },
+              "preferred_regions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "MIDWEST"
+                }
+              },
+              "notification_preferences": {
+                "type": "object",
+                "properties": {
+                  "push_enabled": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "email_enabled": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "sms_enabled": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              }
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DriverWithDetails": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Driver"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "total_miles": {
+                "type": "number",
+                "format": "float",
+                "example": 45678.5
+              },
+              "total_loads": {
+                "type": "integer",
+                "example": 325
+              },
+              "avg_deadhead_percentage": {
+                "type": "number",
+                "format": "float",
+                "example": 12.5
+              },
+              "driver_score": {
+                "type": "number",
+                "format": "float",
+                "example": 4.8
+              },
+              "current_assignment": {
+                "$ref": "#/components/schemas/LoadAssignment"
+              },
+              "recent_loads": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Load"
+                }
+              },
+              "upcoming_loads": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Load"
+                }
+              },
+              "hos_summary": {
+                "$ref": "#/components/schemas/DriverHOS"
+              },
+              "achievements": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DriverAchievement"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "DriverCreationParams": {
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "phone"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john.doe@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+15551234567"
+          },
+          "carrier_id": {
+            "type": "string",
+            "example": "carrier-123"
+          },
+          "license_number": {
+            "type": "string",
+            "example": "DL1234567"
+          },
+          "license_state": {
+            "type": "string",
+            "example": "IL"
+          },
+          "license_expiration": {
+            "type": "string",
+            "format": "date",
+            "example": "2025-12-31"
+          },
+          "profile_image_url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://api.freightoptimization.com/images/drivers/profile-123.jpg"
+          },
+          "home_location": {
+            "type": "object",
+            "properties": {
+              "latitude": {
+                "type": "number",
+                "format": "float",
+                "example": 41.9742
+              },
+              "longitude": {
+                "type": "number",
+                "format": "float",
+                "example": -87.9073
+              },
+              "address": {
+                "type": "string",
+                "example": "123 Main St, Schaumburg, IL 60173"
+              }
+            }
+          },
+          "preferences": {
+            "type": "object",
+            "properties": {
+              "max_deadhead_miles": {
+                "type": "integer",
+                "example": 100
+              },
+              "preferred_routes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "IL-CA"
+                }
+              },
+              "preferred_load_types": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "DRY_VAN"
+                }
+              },
+              "preferred_regions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "MIDWEST"
+                }
+              },
+              "notification_preferences": {
+                "type": "object",
+                "properties": {
+                  "push_enabled": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "email_enabled": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "sms_enabled": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "DriverUpdateParams": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+15551234567"
+          },
+          "license_number": {
+            "type": "string",
+            "example": "DL1234567"
+          },
+          "license_state": {
+            "type": "string",
+            "example": "IL"
+          },
+          "license_expiration": {
+            "type": "string",
+            "format": "date",
+            "example": "2025-12-31"
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE"
+          },
+          "profile_image_url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://api.freightoptimization.com/images/drivers/profile-123.jpg"
+          },
+          "home_location": {
+            "type": "object",
+            "properties": {
+              "latitude": {
+                "type": "number",
+                "format": "float",
+                "example": 41.9742
+              },
+              "longitude": {
+                "type": "number",
+                "format": "float",
+                "example": -87.9073
+              },
+              "address": {
+                "type": "string",
+                "example": "123 Main St, Schaumburg, IL 60173"
+              }
+            }
+          },
+          "preferences": {
+            "type": "object",
+            "properties": {
+              "max_deadhead_miles": {
+                "type": "integer",
+                "example": 100
+              },
+              "preferred_routes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "IL-CA"
+                }
+              },
+              "preferred_load_types": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "DRY_VAN"
+                }
+              },
+              "preferred_regions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "MIDWEST"
+                }
+              },
+              "notification_preferences": {
+                "type": "object",
+                "properties": {
+                  "push_enabled": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "email_enabled": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "sms_enabled": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "DriverStatus": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE",
+          "AVAILABLE",
+          "ON_DUTY",
+          "DRIVING",
+          "OFF_DUTY",
+          "SLEEPER_BERTH",
+          "SUSPENDED"
+        ]
+      }
+    }
+  }
+}
