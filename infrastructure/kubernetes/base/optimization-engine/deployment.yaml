@@ -1,0 +1,205 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: optimization-engine
+  namespace: default
+  labels:
+    app: optimization-engine
+    component: optimization
+    part-of: freight-optimization
+  annotations:
+    description: "Optimization Engine for the AI-driven Freight Optimization Platform"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: optimization-engine
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: optimization-engine
+        component: optimization
+        part-of: freight-optimization
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3003"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: optimization-engine
+        image: "{{ .Values.image.repository }}/optimization-engine:{{ .Values.image.tag }}"
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3003
+          protocol: TCP
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PYTHONDONTWRITEBYTECODE
+          value: "1"
+        - name: PORT
+          value: "3003"
+        - name: OPTIMIZATION_ENGINE_PORT
+          value: "3003"
+        - name: OPTIMIZATION_ENGINE_HOST
+          value: "0.0.0.0"
+        - name: LOG_LEVEL
+          value: "{{ .Values.optimization.logLevel }}"
+        - name: MODEL_REGISTRY_PATH
+          value: "{{ .Values.optimization.modelRegistryPath }}"
+        - name: USE_SAGEMAKER_ENDPOINTS
+          value: "{{ .Values.optimization.useSagemakerEndpoints }}"
+        - name: MAX_OPTIMIZATION_JOBS
+          value: "{{ .Values.optimization.maxJobs }}"
+        - name: OPTIMIZATION_TIMEOUT_MS
+          value: "{{ .Values.optimization.timeoutMs }}"
+        - name: DEFAULT_OPTIMIZATION_RADIUS_MILES
+          value: "{{ .Values.optimization.defaultRadiusMiles }}"
+        - name: SMART_HUB_DETECTION_THRESHOLD
+          value: "{{ .Values.optimization.smartHubThreshold }}"
+        - name: KAFKA_BROKERS
+          value: "{{ .Values.kafka.brokers }}"
+        - name: KAFKA_CONSUMER_GROUP
+          value: "{{ .Values.kafka.consumerGroup }}"
+        - name: KAFKA_TOPIC_DRIVER_POSITION
+          value: "{{ .Values.kafka.topics.driverPosition }}"
+        - name: KAFKA_TOPIC_LOAD_STATUS
+          value: "{{ .Values.kafka.topics.loadStatus }}"
+        - name: KAFKA_TOPIC_OPTIMIZATION_RESULTS
+          value: "{{ .Values.kafka.topics.optimizationResults }}"
+        - name: KAFKA_CONSUMER_GROUP_DRIVER_POSITION
+          value: "{{ .Values.kafka.consumerGroups.driverPosition }}"
+        - name: KAFKA_CONSUMER_GROUP_LOAD_STATUS
+          value: "{{ .Values.kafka.consumerGroups.loadStatus }}"
+        - name: AWS_REGION
+          value: "{{ .Values.aws.region }}"
+        - name: NETWORK_OPTIMIZER_WEIGHT_EMPTY_MILES
+          value: "{{ .Values.optimization.weights.emptyMiles }}"
+        - name: NETWORK_OPTIMIZER_WEIGHT_DRIVER_PREFERENCES
+          value: "{{ .Values.optimization.weights.driverPreferences }}"
+        - name: NETWORK_OPTIMIZER_WEIGHT_TIME_WINDOWS
+          value: "{{ .Values.optimization.weights.timeWindows }}"
+        - name: NETWORK_OPTIMIZER_WEIGHT_SMART_HUB_UTILIZATION
+          value: "{{ .Values.optimization.weights.smartHubUtilization }}"
+        - name: NETWORK_OPTIMIZER_WEIGHT_FUEL_EFFICIENCY
+          value: "{{ .Values.optimization.weights.fuelEfficiency }}"
+        - name: RELAY_PLANNER_MAX_SEGMENTS
+          value: "{{ .Values.optimization.relay.maxSegments }}"
+        - name: RELAY_PLANNER_MIN_SEGMENT_MILES
+          value: "{{ .Values.optimization.relay.minSegmentMiles }}"
+        - name: RELAY_PLANNER_MAX_SEGMENT_MILES
+          value: "{{ .Values.optimization.relay.maxSegmentMiles }}"
+        - name: DEMAND_PREDICTOR_FORECAST_HORIZON_HOURS
+          value: "{{ .Values.optimization.demandPredictor.forecastHorizonHours }}"
+        - name: HUB_SELECTOR_MIN_FACILITY_SCORE
+          value: "{{ .Values.optimization.hubSelector.minFacilityScore }}"
+        - name: HUB_SELECTOR_MIN_CROSSOVER_COUNT
+          value: "{{ .Values.optimization.hubSelector.minCrossoverCount }}"
+        - name: ENABLE_SWAGGER
+          value: "{{ .Values.api.enableSwagger }}"
+        - name: API_PREFIX
+          value: "{{ .Values.api.prefix }}"
+        - name: SERVICE_NAME
+          value: "optimization-engine"
+        - name: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+          value: "{{ .Values.circuitBreaker.failureThreshold }}"
+        - name: CIRCUIT_BREAKER_RESET_TIMEOUT_MS
+          value: "{{ .Values.circuitBreaker.resetTimeoutMs }}"
+        - name: SERVICE_HEALTH_CHECK_INTERVAL_MS
+          value: "{{ .Values.service.healthCheckIntervalMs }}"
+        - name: SERVICE_TIMEOUT_MS
+          value: "{{ .Values.service.timeoutMs }}"
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: optimization-engine-secrets
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: optimization-engine-secrets
+              key: AWS_SECRET_ACCESS_KEY
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: optimization-engine-secrets
+              key: DATABASE_URL
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: optimization-engine-secrets
+              key: REDIS_URL
+        resources:
+          requests:
+            cpu: "2"
+            memory: "8Gi"
+          limits:
+            cpu: "4"
+            memory: "16Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 40
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+        - name: models-volume
+          mountPath: /app/models
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: config-volume
+        configMap:
+          name: "{{ .Values.configMap.name }}"
+      - name: models-volume
+        persistentVolumeClaim:
+          claimName: optimization-engine-models-pvc
+      - name: tmp-volume
+        emptyDir: {}
+      nodeSelector:
+        role: computation
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - optimization-engine
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 50
+            preference:
+              matchExpressions:
+              - key: gpu
+                operator: In
+                values:
+                - "true"
+      terminationGracePeriodSeconds: 120
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
