@@ -1,0 +1,53 @@
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+build/
+dist/
+coverage/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache directories
+.npm/
+.eslintcache
+.stylelintcache
+.rts2_cache_*/
+.rpt2_cache_*/
+.cache/
+
+# Mobile app specific
+driver-app/ios/Pods/
+driver-app/android/app/build/
+driver-app/android/.gradle/
+driver-app/android/local.properties
+driver-app/android/captures/
+driver-app/android/gradlew
+driver-app/android/gradlew.bat
+driver-app/android/gradle/
+driver-app/*.hprof
+driver-app/*.jsbundle
+driver-app/*.tsbuildinfo
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
