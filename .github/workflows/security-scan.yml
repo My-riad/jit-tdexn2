@@ -1,0 +1,260 @@
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight
+  push:
+    branches: ['main', 'develop', 'staging']
+    paths:
+      - '**/package.json'
+      - '**/package-lock.json'
+      - '**/requirements.txt'
+      - '**/Dockerfile'
+      - '.github/workflows/security-scan.yml'
+  pull_request:
+    branches: ['main', 'develop', 'staging']
+    paths:
+      - '**/package.json'
+      - '**/package-lock.json'
+      - '**/requirements.txt'
+      - '**/Dockerfile'
+      - '.github/workflows/security-scan.yml'
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  NODE_VERSION: '18.x'
+  PYTHON_VERSION: '3.11'
+  JAVA_VERSION: '11'
+
+jobs:
+  dependency-scanning:
+    name: Dependency Scanning
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: ['src/backend', 'src/web', 'src/web/driver-app']
+        package-manager: ['npm']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ matrix.directory }}/package-lock.json'
+      
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ matrix.directory }}
+      
+      - name: Run npm audit
+        run: npm audit --production --audit-level=high
+        working-directory: ${{ matrix.directory }}
+        continue-on-error: true
+      
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        with:
+          args: '--file=${{ matrix.directory }}/package.json --severity-threshold=high'
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      
+      - name: Generate dependency report
+        run: npm list --prod --json > dependency-report.json
+        working-directory: ${{ matrix.directory }}
+      
+      - name: Upload dependency report
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-report-${{ matrix.directory }}
+          path: ${{ matrix.directory }}/dependency-report.json
+
+  container-scanning:
+    name: Container Scanning
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [
+          'api-gateway',
+          'auth-service',
+          'cache-service',
+          'data-service',
+          'driver-service',
+          'event-bus',
+          'gamification-service',
+          'integration-service',
+          'load-matching-service',
+          'load-service',
+          'market-intelligence-service',
+          'notification-service',
+          'optimization-engine',
+          'tracking-service'
+        ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Build image
+        run: docker build -t ${{ matrix.service }}:latest src/backend/${{ matrix.service }}
+      
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@0.11.0
+        with:
+          image-ref: '${{ matrix.service }}:latest'
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.service }}.sarif'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+      
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
+      
+      - name: Scan with Anchore
+        uses: anchore/scan-action@v3
+        with:
+          image: '${{ matrix.service }}:latest'
+          fail-build: false
+          severity-cutoff: 'high'
+
+  code-scanning:
+    name: Code Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: 'javascript, typescript'
+      
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+      
+      - name: Run OSSF Scorecard
+        uses: ossf/scorecard-action@v2.1.3
+        with:
+          results_file: 'scorecard-results.sarif'
+          results_format: 'sarif'
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_results: true
+      
+      - name: Upload OSSF Scorecard results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'scorecard-results.sarif'
+
+  secrets-scanning:
+    name: Secrets Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Full git history for better secrets detection
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install Trufflehog
+        run: pip install trufflehog
+      
+      - name: Run Trufflehog
+        run: trufflehog --regex --entropy=False --max_depth=50 .
+        continue-on-error: true  # Prevent failures if secrets are found
+      
+      - name: Install GitLeaks
+        run: |
+          curl -L https://github.com/zricethezav/gitleaks/releases/download/v8.16.3/gitleaks_8.16.3_linux_x64.tar.gz | tar xz
+          chmod +x gitleaks
+      
+      - name: Run GitLeaks
+        run: ./gitleaks detect --source . -v
+        continue-on-error: true  # Prevent failures if secrets are found
+
+  compliance-checks:
+    name: Compliance Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Install OWASP Dependency-Check
+        run: |
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v8.2.1/dependency-check-8.2.1-release.zip
+          unzip dependency-check-8.2.1-release.zip
+      
+      - name: Run OWASP Dependency-Check
+        run: ./dependency-check/bin/dependency-check.sh --scan src --format JSON --out owasp-report.json
+      
+      - name: Upload OWASP report
+        uses: actions/upload-artifact@v3
+        with:
+          name: owasp-report
+          path: owasp-report.json
+      
+      - name: Check for license compliance
+        run: npx license-checker --production --json > license-report.json
+        working-directory: src/backend
+      
+      - name: Upload license report
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-report
+          path: src/backend/license-report.json
+
+  security-report:
+    name: Security Report
+    runs-on: ubuntu-latest
+    needs: [dependency-scanning, container-scanning, code-scanning, secrets-scanning, compliance-checks]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: security-reports
+      
+      - name: Generate consolidated report
+        run: |
+          echo "# Security Scan Report $(date)" > security-report.md
+          echo "## Summary" >> security-report.md
+          echo "* Dependency scanning: ${{ needs.dependency-scanning.result }}" >> security-report.md
+          echo "* Container scanning: ${{ needs.container-scanning.result }}" >> security-report.md
+          echo "* Code scanning: ${{ needs.code-scanning.result }}" >> security-report.md
+          echo "* Secrets scanning: ${{ needs.secrets-scanning.result }}" >> security-report.md
+          echo "* Compliance checks: ${{ needs.compliance-checks.result }}" >> security-report.md
+          echo "\n## Details" >> security-report.md
+          echo "See attached artifacts for detailed reports." >> security-report.md
+      
+      - name: Upload consolidated report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: security-report.md
+      
+      - name: Send Slack notification
+        uses: rtCamp/action-slack-notify@v2
+        if: always()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_TITLE: 'Security Scan Results'
+          SLACK_MESSAGE: 'Security scan completed with status: ${{ job.status }}. See detailed report in GitHub Actions artifacts.'
+          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+          SLACK_FOOTER: 'AI-driven Freight Optimization Platform'
