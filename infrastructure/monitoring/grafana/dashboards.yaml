@@ -1,0 +1,164 @@
+# Configuration file for Grafana dashboard provisioning in the AI-driven Freight Optimization Platform.
+# This file defines how dashboards are discovered, organized, and managed within Grafana, enabling the visualization of system metrics, business KPIs, and operational data across different categories for various stakeholders.
+#
+# Requirements Addressed:
+#   - Dashboard Design: Technical Specifications/6.5 MONITORING AND OBSERVABILITY/6.5.1 MONITORING INFRASTRUCTURE
+#   - Visualization & Alerting: Technical Specifications/6.5 MONITORING AND OBSERVABILITY/6.5.1 MONITORING INFRASTRUCTURE
+#   - Performance Metrics Visualization: Technical Specifications/6.5 MONITORING AND OBSERVABILITY/6.5.2 PERFORMANCE METRICS COLLECTION
+#   - SLA Monitoring: Technical Specifications/6.5 MONITORING AND OBSERVABILITY/6.5.2 OBSERVABILITY PATTERNS
+#   - Business Metrics: Technical Specifications/6.5 MONITORING AND OBSERVABILITY/6.5.2 BUSINESS METRICS
+
+apiVersion: 1
+
+providers:
+  # System Dashboards: Core system monitoring dashboards showing overall platform health and performance
+  - name: 'System Dashboards'
+    orgId: 1
+    folder: 'System'
+    type: 'file'
+    disableDeletion: true # Prevent deletion of system dashboards
+    editable: false # Prevent editing of system dashboards
+    updateIntervalSeconds: 30 # Refresh interval for dashboards
+    allowUiUpdates: false # Prevent UI updates
+    options:
+      path: /etc/grafana/provisioning/dashboards/system # Path to the dashboards directory
+      foldersFromFilesStructure: true # Organize dashboards into folders based on file structure
+
+  # Service Dashboards: Service-specific dashboards for monitoring individual microservices
+  - name: 'Service Dashboards'
+    orgId: 1
+    folder: 'Services'
+    type: 'file'
+    disableDeletion: false # Allow deletion of service dashboards
+    editable: true # Allow editing of service dashboards
+    updateIntervalSeconds: 30 # Refresh interval for dashboards
+    allowUiUpdates: true # Allow UI updates
+    options:
+      path: /etc/grafana/provisioning/dashboards/services # Path to the dashboards directory
+      foldersFromFilesStructure: true # Organize dashboards into folders based on file structure
+
+  # Business Dashboards: Business metrics dashboards showing KPIs and operational metrics
+  - name: 'Business Dashboards'
+    orgId: 1
+    folder: 'Business'
+    type: 'file'
+    disableDeletion: false # Allow deletion of business dashboards
+    editable: true # Allow editing of business dashboards
+    updateIntervalSeconds: 30 # Refresh interval for dashboards
+    allowUiUpdates: true # Allow UI updates
+    options:
+      path: /etc/grafana/provisioning/dashboards/business # Path to the dashboards directory
+      foldersFromFilesStructure: true # Organize dashboards into folders based on file structure
+
+  # Executive Dashboards: High-level dashboards for executive stakeholders showing business impact and value
+  - name: 'Executive Dashboards'
+    orgId: 1
+    folder: 'Executive'
+    type: 'file'
+    disableDeletion: true # Prevent deletion of executive dashboards
+    editable: false # Prevent editing of executive dashboards
+    updateIntervalSeconds: 60 # Refresh interval for dashboards
+    allowUiUpdates: false # Prevent UI updates
+    options:
+      path: /etc/grafana/provisioning/dashboards/executive # Path to the dashboards directory
+      foldersFromFilesStructure: true # Organize dashboards into folders based on file structure
+
+  # Operations Dashboards: Operational dashboards for the operations team to monitor day-to-day platform performance
+  - name: 'Operations Dashboards'
+    orgId: 1
+    folder: 'Operations'
+    type: 'file'
+    disableDeletion: false # Allow deletion of operations dashboards
+    editable: true # Allow editing of operations dashboards
+    updateIntervalSeconds: 30 # Refresh interval for dashboards
+    allowUiUpdates: true # Allow UI updates
+    options:
+      path: /etc/grafana/provisioning/dashboards/operations # Path to the dashboards directory
+      foldersFromFilesStructure: true # Organize dashboards into folders based on file structure
+
+  # Development Dashboards: Development-focused dashboards for engineering teams
+  - name: 'Development Dashboards'
+    orgId: 1
+    folder: 'Development'
+    type: 'file'
+    disableDeletion: false # Allow deletion of development dashboards
+    editable: true # Allow editing of development dashboards
+    updateIntervalSeconds: 30 # Refresh interval for dashboards
+    allowUiUpdates: true # Allow UI updates
+    options:
+      path: /etc/grafana/provisioning/dashboards/development # Path to the dashboards directory
+      foldersFromFilesStructure: true # Organize dashboards into folders based on file structure
+
+  # Security Dashboards: Security monitoring dashboards for the security team
+  - name: 'Security Dashboards'
+    orgId: 1
+    folder: 'Security'
+    type: 'file'
+    disableDeletion: true # Prevent deletion of security dashboards
+    editable: false # Prevent editing of security dashboards
+    updateIntervalSeconds: 30 # Refresh interval for dashboards
+    allowUiUpdates: false # Prevent UI updates
+    options:
+      path: /etc/grafana/provisioning/dashboards/security # Path to the dashboards directory
+      foldersFromFilesStructure: true # Organize dashboards into folders based on file structure
+
+# Define dashboard categories and their associated dashboards
+dashboard_categories:
+  - name: 'System'
+    description: 'Core system monitoring dashboards showing overall platform health and performance'
+    dashboards:
+      - 'system-overview-dashboard.json' # System overview dashboard showing service health, business metrics, and system performance
+
+  - name: 'Services'
+    description: 'Service-specific dashboards for monitoring individual microservices'
+    dashboards:
+      - 'api-gateway-dashboard.json' # API Gateway performance and traffic monitoring dashboard
+      - 'auth-service-dashboard.json' # Authentication service metrics and performance dashboard
+      - 'load-matching-dashboard.json' # Load matching service performance and metrics dashboard
+      - 'optimization-engine-dashboard.json' # AI optimization engine performance and metrics dashboard
+
+  - name: 'Business'
+    description: 'Business metrics dashboards showing KPIs and operational metrics'
+    dashboards:
+      - 'business-metrics-dashboard.json' # Business KPIs and metrics dashboard for executive and business stakeholders
+
+  - name: 'Executive'
+    description: 'High-level dashboards for executive stakeholders showing business impact and value'
+    dashboards: [] # No dashboards defined for this category yet
+
+  - name: 'Operations'
+    description: 'Operational dashboards for the operations team to monitor day-to-day platform performance'
+    dashboards: [] # No dashboards defined for this category yet
+
+  - name: 'Development'
+    description: 'Development-focused dashboards for engineering teams'
+    dashboards: [] # No dashboards defined for this category yet
+
+  - name: 'Security'
+    description: 'Security monitoring dashboards for the security team'
+    dashboards: [] # No dashboards defined for this category yet
+
+# Define available refresh intervals for dashboards
+dashboard_refresh_intervals:
+  - '5s'
+  - '10s'
+  - '30s'
+  - '1m'
+  - '5m'
+  - '15m'
+  - '30m'
+  - '1h'
+  - '2h'
+  - '1d'
+
+# Define available time options for dashboards
+dashboard_time_options:
+  - '5m'
+  - '15m'
+  - '1h'
+  - '6h'
+  - '12h'
+  - '24h'
+  - '2d'
+  - '7d'
+  - '30d'
