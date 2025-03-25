@@ -1,0 +1,54 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "sourceMap": true,
+    "composite": true,
+    "incremental": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "baseUrl": ".",
+    "paths": {
+      "@common/*": ["common/*"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "tests"
+  ],
+  "references": [
+    { "path": "./common" },
+    { "path": "./api-gateway" },
+    { "path": "./auth-service" },
+    { "path": "./cache-service" },
+    { "path": "./data-service" },
+    { "path": "./driver-service" },
+    { "path": "./event-bus" },
+    { "path": "./gamification-service" },
+    { "path": "./integration-service" },
+    { "path": "./load-matching-service" },
+    { "path": "./load-service" },
+    { "path": "./market-intelligence-service" },
+    { "path": "./notification-service" },
+    { "path": "./optimization-engine" },
+    { "path": "./tracking-service" }
+  ]
+}
