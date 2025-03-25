@@ -1,0 +1,240 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: default
+  labels:
+    app: auth-service
+    component: auth-service
+    part-of: freight-optimization
+  annotations:
+    description: "Authentication Service for the AI-driven Freight Optimization Platform"
+    configmap-dependency: "Requires auth-service-config ConfigMap to be created separately with appropriate authentication configuration values"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: auth-service
+        component: auth-service
+        part-of: freight-optimization
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3001"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: auth-service
+        image: "{{ .Values.image.repository }}/auth-service:{{ .Values.image.tag }}"
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3001
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3001"
+        - name: JWT_ACCESS_EXPIRATION
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: JWT_ACCESS_EXPIRATION
+        - name: JWT_REFRESH_EXPIRATION
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: JWT_REFRESH_EXPIRATION
+        - name: JWT_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: JWT_ISSUER
+        - name: JWT_AUDIENCE
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: JWT_AUDIENCE
+        - name: ENABLE_MFA
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: ENABLE_MFA
+        - name: PASSWORD_SALT_ROUNDS
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: PASSWORD_SALT_ROUNDS
+        - name: SESSION_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: SESSION_TIMEOUT
+        - name: MAX_LOGIN_ATTEMPTS
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: MAX_LOGIN_ATTEMPTS
+        - name: LOCKOUT_TIME
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: LOCKOUT_TIME
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: DB_PORT
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: DB_NAME
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: REDIS_PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: LOG_LEVEL
+        - name: PASSWORD_MIN_LENGTH
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: PASSWORD_MIN_LENGTH
+        - name: PASSWORD_REQUIRE_UPPERCASE
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: PASSWORD_REQUIRE_UPPERCASE
+        - name: PASSWORD_REQUIRE_LOWERCASE
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: PASSWORD_REQUIRE_LOWERCASE
+        - name: PASSWORD_REQUIRE_NUMBER
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: PASSWORD_REQUIRE_NUMBER
+        - name: PASSWORD_REQUIRE_SYMBOL
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: PASSWORD_REQUIRE_SYMBOL
+        - name: PASSWORD_HISTORY_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: PASSWORD_HISTORY_SIZE
+        - name: PASSWORD_EXPIRY_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: PASSWORD_EXPIRY_DAYS
+        - name: CORS_ORIGIN
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: CORS_ORIGIN
+        - name: API_RATE_LIMIT_MAX
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: API_RATE_LIMIT_MAX
+        - name: API_RATE_LIMIT_WINDOW_MS
+          valueFrom:
+            configMapKeyRef:
+              name: auth-service-config
+              key: API_RATE_LIMIT_WINDOW_MS
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: auth-service-secrets
+              key: JWT_SECRET
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: auth-service-secrets
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: auth-service-secrets
+              key: DB_PASSWORD
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: auth-service-secrets
+              key: REDIS_PASSWORD
+        resources:
+          requests:
+            cpu: "0.3"
+            memory: "512Mi"
+          limits:
+            cpu: "0.5"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
+      nodeSelector:
+        role: application
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - auth-service
+              topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
