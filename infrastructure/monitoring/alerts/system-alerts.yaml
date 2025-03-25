@@ -1,0 +1,736 @@
+groups:
+  - name: kubernetes-cluster
+    rules:
+      - alert: KubernetesNodeNotReady
+        expr: kube_node_status_condition{condition="Ready", status="true"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: kubernetes
+        annotations:
+          summary: Kubernetes node not ready
+          description: Node {{ $labels.node }} has been in NotReady state for more than 5 minutes
+          impact: Workloads on this node may be unavailable or rescheduled
+          action: Check node events, logs, and connectivity
+
+      - alert: KubernetesNodeMemoryPressure
+        expr: kube_node_status_condition{condition="MemoryPressure", status="true"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          category: kubernetes
+        annotations:
+          summary: Kubernetes node memory pressure
+          description: Node {{ $labels.node }} has reported memory pressure for more than 5 minutes
+          impact: Node is running low on memory and may start evicting pods
+          action: Check node memory usage and consider adding resources or reducing workloads
+
+      - alert: KubernetesNodeDiskPressure
+        expr: kube_node_status_condition{condition="DiskPressure", status="true"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          category: kubernetes
+        annotations:
+          summary: Kubernetes node disk pressure
+          description: Node {{ $labels.node }} has reported disk pressure for more than 5 minutes
+          impact: Node is running low on disk space and may start evicting pods
+          action: Check node disk usage and consider adding storage or cleaning up unused data
+
+      - alert: KubernetesNodeNetworkUnavailable
+        expr: kube_node_status_condition{condition="NetworkUnavailable", status="true"} == 1
+        for: 5m
+        labels:
+          severity: critical
+          category: kubernetes
+        annotations:
+          summary: Kubernetes node network unavailable
+          description: Node {{ $labels.node }} has reported NetworkUnavailable for more than 5 minutes
+          impact: Network connectivity issues affecting node communication
+          action: Check node network configuration, CNI, and network infrastructure
+
+      - alert: KubernetesPodCrashLooping
+        expr: increase(kube_pod_container_status_restarts_total{namespace=~"freight-optimization.*"}[15m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: kubernetes
+        annotations:
+          summary: Kubernetes pod crash looping
+          description: Pod {{ $labels.namespace }}/{{ $labels.pod }} has restarted more than 5 times in the last 15 minutes
+          impact: Service instability and potential downtime
+          action: Check pod logs and events for error details
+
+      - alert: KubernetesPodNotReady
+        expr: sum by (namespace, pod) (kube_pod_status_phase{phase=~"Pending|Unknown"}) > 0
+        for: 15m
+        labels:
+          severity: warning
+          category: kubernetes
+        annotations:
+          summary: Kubernetes pod not ready
+          description: Pod {{ $labels.namespace }}/{{ $labels.pod }} has been in non-ready state for more than 15 minutes
+          impact: Pod is not available to serve requests
+          action: Check pod events, logs, and resource constraints
+
+      - alert: KubernetesDeploymentReplicasMismatch
+        expr: kube_deployment_spec_replicas{namespace=~"freight-optimization.*"} != kube_deployment_status_replicas_available{namespace=~"freight-optimization.*"}
+        for: 15m
+        labels:
+          severity: warning
+          category: kubernetes
+        annotations:
+          summary: Kubernetes deployment replicas mismatch
+          description: Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has {{ $value }} replicas unavailable
+          impact: Reduced capacity and potential service degradation
+          action: Check deployment events, pod logs, and resource constraints
+
+      - alert: KubernetesStatefulSetReplicasMismatch
+        expr: kube_statefulset_replicas{namespace=~"freight-optimization.*"} != kube_statefulset_status_replicas_ready{namespace=~"freight-optimization.*"}
+        for: 15m
+        labels:
+          severity: warning
+          category: kubernetes
+        annotations:
+          summary: Kubernetes StatefulSet replicas mismatch
+          description: StatefulSet {{ $labels.namespace }}/{{ $labels.statefulset }} has {{ $value }} replicas unavailable
+          impact: Reduced capacity and potential service degradation for stateful components
+          action: Check StatefulSet events, pod logs, and persistent volume status
+
+      - alert: KubernetesJobFailed
+        expr: kube_job_status_failed{namespace=~"freight-optimization.*"} > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: kubernetes
+        annotations:
+          summary: Kubernetes job failed
+          description: Job {{ $labels.namespace }}/{{ $labels.job_name }} has failed execution
+          impact: Scheduled task has failed, which may affect data processing or system maintenance
+          action: Check job logs and events for error details
+
+      - alert: KubernetesPersistentVolumeError
+        expr: kube_persistentvolume_status_phase{phase=~"Failed|Pending"} > 0
+        for: 5m
+        labels:
+          severity: critical
+          category: kubernetes
+        annotations:
+          summary: Kubernetes persistent volume error
+          description: PersistentVolume {{ $labels.persistentvolume }} is in {{ $labels.phase }} phase
+          impact: Storage issues affecting stateful services
+          action: Check PersistentVolume events, storage provider status, and volume configuration
+
+  - name: system-resources
+    rules:
+      - alert: HostHighCPULoad
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: Host high CPU load
+          description: CPU load on {{ $labels.instance }} is above 80% for more than 5 minutes
+          impact: System performance may be degraded
+          action: Check system processes and consider scaling resources
+
+      - alert: HostCriticalCPULoad
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 5m
+        labels:
+          severity: critical
+          category: resources
+        annotations:
+          summary: Host critical CPU load
+          description: CPU load on {{ $labels.instance }} is above 95% for more than 5 minutes
+          impact: Severe system performance degradation
+          action: Immediate investigation required, check for runaway processes or resource constraints
+
+      - alert: HostHighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - (node_memory_MemFree_bytes + node_memory_Buffers_bytes + node_memory_Cached_bytes)) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: Host high memory usage
+          description: Memory usage on {{ $labels.instance }} is above 85% for more than 5 minutes
+          impact: Risk of OOM kills and system instability
+          action: Check memory-intensive processes and consider scaling resources
+
+      - alert: HostCriticalMemoryUsage
+        expr: (node_memory_MemTotal_bytes - (node_memory_MemFree_bytes + node_memory_Buffers_bytes + node_memory_Cached_bytes)) / node_memory_MemTotal_bytes * 100 > 95
+        for: 5m
+        labels:
+          severity: critical
+          category: resources
+        annotations:
+          summary: Host critical memory usage
+          description: Memory usage on {{ $labels.instance }} is above 95% for more than 5 minutes
+          impact: Imminent risk of OOM kills and service disruption
+          action: Immediate action required, check for memory leaks or add resources
+
+      - alert: HostHighDiskUsage
+        expr: 100 - ((node_filesystem_avail_bytes{mountpoint="/"} * 100) / node_filesystem_size_bytes{mountpoint="/"}) > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: Host high disk usage
+          description: Disk usage on {{ $labels.instance }} mountpoint {{ $labels.mountpoint }} is above 85% for more than 5 minutes
+          impact: Risk of disk space exhaustion and service disruption
+          action: Clean up disk space or expand storage
+
+      - alert: HostCriticalDiskUsage
+        expr: 100 - ((node_filesystem_avail_bytes{mountpoint="/"} * 100) / node_filesystem_size_bytes{mountpoint="/"}) > 95
+        for: 5m
+        labels:
+          severity: critical
+          category: resources
+        annotations:
+          summary: Host critical disk usage
+          description: Disk usage on {{ $labels.instance }} mountpoint {{ $labels.mountpoint }} is above 95% for more than 5 minutes
+          impact: Imminent disk space exhaustion and service failure
+          action: Immediate action required to free up disk space or expand storage
+
+      - alert: HostOutOfInodes
+        expr: node_filesystem_files_free{mountpoint="/"} / node_filesystem_files{mountpoint="/"} * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          category: resources
+        annotations:
+          summary: Host out of inodes
+          description: {{ $labels.instance }} mountpoint {{ $labels.mountpoint }} has less than 10% free inodes for more than 5 minutes
+          impact: System unable to create new files despite available disk space
+          action: Check for large numbers of small files and clean up or expand filesystem
+
+      - alert: HostUnusualDiskReadRate
+        expr: sum by (instance) (rate(node_disk_read_bytes_total[5m])) / 1024 / 1024 > 50
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: Host unusual disk read rate
+          description: Disk read rate on {{ $labels.instance }} is above 50 MB/s for more than 5 minutes
+          impact: Potential disk I/O bottleneck affecting system performance
+          action: Check for processes with high disk read activity
+
+      - alert: HostUnusualDiskWriteRate
+        expr: sum by (instance) (rate(node_disk_written_bytes_total[5m])) / 1024 / 1024 > 50
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: Host unusual disk write rate
+          description: Disk write rate on {{ $labels.instance }} is above 50 MB/s for more than 5 minutes
+          impact: Potential disk I/O bottleneck affecting system performance
+          action: Check for processes with high disk write activity
+
+  - name: network-connectivity
+    rules:
+      - alert: HostNetworkReceiveErrors
+        expr: increase(node_network_receive_errs_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: Host network receive errors
+          description: {{ $labels.instance }} interface {{ $labels.device }} has encountered more than 10 receive errors in the last 5 minutes
+          impact: Network reliability issues affecting data transmission
+          action: Check network interface, cables, and network infrastructure
+
+      - alert: HostNetworkTransmitErrors
+        expr: increase(node_network_transmit_errs_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: Host network transmit errors
+          description: {{ $labels.instance }} interface {{ $labels.device }} has encountered more than 10 transmit errors in the last 5 minutes
+          impact: Network reliability issues affecting data transmission
+          action: Check network interface, cables, and network infrastructure
+
+      - alert: HostNetworkInterfaceDown
+        expr: node_network_up{device!="lo"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: network
+        annotations:
+          summary: Host network interface down
+          description: {{ $labels.instance }} interface {{ $labels.device }} is down for more than 5 minutes
+          impact: Network connectivity lost, affecting service availability
+          action: Check network interface, cables, and network infrastructure
+
+      - alert: HostHighNetworkTraffic
+        expr: sum by (instance, device) (rate(node_network_receive_bytes_total{device!="lo"}[5m]) + rate(node_network_transmit_bytes_total{device!="lo"}[5m])) / 1024 / 1024 > 100
+        for: 15m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: Host high network traffic
+          description: {{ $labels.instance }} interface {{ $labels.device }} is experiencing more than 100 MB/s of network traffic for more than 15 minutes
+          impact: Potential network saturation affecting service performance
+          action: Check for unusual network activity or consider network capacity upgrade
+
+      - alert: NetworkLatencyHigh
+        expr: probe_duration_seconds{job="blackbox"} > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: Network latency high
+          description: Network latency to {{ $labels.instance }} is above 500ms for more than 10 minutes
+          impact: Increased response times affecting user experience
+          action: Check network path, load balancers, and service health
+
+      - alert: NetworkPacketLossHigh
+        expr: 100 * (1 - avg_over_time(probe_success{job="blackbox"}[15m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: Network packet loss high
+          description: Packet loss to {{ $labels.instance }} is above 5% for more than 10 minutes
+          impact: Degraded network reliability affecting service quality
+          action: Check network infrastructure, routing, and service health
+
+      - alert: NetworkDNSErrorsHigh
+        expr: probe_dns_lookup_time_seconds{job="blackbox"} > 1
+        for: 5m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: Network DNS errors high
+          description: DNS lookup time for {{ $labels.instance }} is above 1 second for more than 5 minutes
+          impact: DNS resolution delays affecting service connectivity
+          action: Check DNS servers, network connectivity, and DNS configuration
+
+  - name: database-health
+    rules:
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: PostgreSQL database down
+          description: PostgreSQL instance {{ $labels.instance }} is down for more than 1 minute
+          impact: Database unavailable, affecting all dependent services
+          action: Check PostgreSQL logs, process status, and database connectivity
+
+      - alert: PostgreSQLHighConnections
+        expr: sum(pg_stat_activity_count) / pg_settings_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: PostgreSQL high connections
+          description: PostgreSQL instance {{ $labels.instance }} is using more than 80% of available connections for more than 5 minutes
+          impact: Risk of connection exhaustion and service disruption
+          action: Check for connection leaks, increase max_connections, or implement connection pooling
+
+      - alert: PostgreSQLReplicationLag
+        expr: pg_replication_lag > 300
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: PostgreSQL replication lag
+          description: PostgreSQL replication lag on {{ $labels.instance }} is more than 5 minutes for more than 5 minutes
+          impact: Standby database significantly behind primary, affecting disaster recovery capability
+          action: Check replication status, network connectivity, and disk I/O performance
+
+      - alert: PostgreSQLHighTransactionTime
+        expr: pg_stat_activity_max_tx_duration > 60
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: PostgreSQL high transaction time
+          description: PostgreSQL instance {{ $labels.instance }} has transactions running for more than 60 seconds
+          impact: Long-running transactions may cause bloat, locks, and performance issues
+          action: Check for long-running queries, locks, and transaction patterns
+
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: Redis instance down
+          description: Redis instance {{ $labels.instance }} is down for more than 1 minute
+          impact: Cache and session data unavailable, affecting service performance
+          action: Check Redis logs, process status, and connectivity
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: Redis high memory usage
+          description: Redis instance {{ $labels.instance }} is using more than 85% of its maximum memory for more than 5 minutes
+          impact: Risk of memory exhaustion and eviction or OOM kills
+          action: Check memory usage patterns, increase memory, or implement key expiration policies
+
+      - alert: RedisReplicationBroken
+        expr: redis_connected_slaves < redis_config_slaves
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: Redis replication broken
+          description: Redis instance {{ $labels.instance }} replication is not working properly
+          impact: Reduced redundancy and potential data loss in case of primary failure
+          action: Check Redis replication status, network connectivity, and replica health
+
+      - alert: MongoDBDown
+        expr: mongodb_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: MongoDB instance down
+          description: MongoDB instance {{ $labels.instance }} is down for more than 1 minute
+          impact: Document database unavailable, affecting dependent services
+          action: Check MongoDB logs, process status, and connectivity
+
+      - alert: MongoDBReplicationLag
+        expr: mongodb_replset_member_optime_date{state="SECONDARY"} - on(set) group_left() mongodb_replset_member_optime_date{state="PRIMARY"} > 60
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: MongoDB replication lag
+          description: MongoDB replication lag on {{ $labels.instance }} is more than 60 seconds for more than 5 minutes
+          impact: Secondary database behind primary, affecting disaster recovery capability
+          action: Check replication status, network connectivity, and disk I/O performance
+
+      - alert: TimescaleDBHighDiskUsage
+        expr: pg_database_size_bytes{datname="freight_optimization"} / pg_settings_max_wal_size_bytes * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: TimescaleDB high disk usage
+          description: TimescaleDB database size on {{ $labels.instance }} is above 80% of maximum WAL size for more than 5 minutes
+          impact: Risk of disk space exhaustion affecting time-series data storage
+          action: Check data retention policies, increase storage, or implement data tiering
+
+  - name: message-queue
+    rules:
+      - alert: KafkaBrokerDown
+        expr: sum(kafka_server_active_controller_count) == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: message-queue
+        annotations:
+          summary: Kafka broker down
+          description: No Kafka brokers are active for more than 1 minute
+          impact: Message queue unavailable, affecting event processing and service communication
+          action: Check Kafka logs, process status, and ZooKeeper connectivity
+
+      - alert: KafkaTopicOfflinePartitions
+        expr: sum(kafka_controller_kafkacontroller_offlinepartitionscount) > 0
+        for: 5m
+        labels:
+          severity: critical
+          category: message-queue
+        annotations:
+          summary: Kafka topic offline partitions
+          description: Kafka has {{ $value }} offline partitions for more than 5 minutes
+          impact: Some topics are unavailable, affecting message processing
+          action: Check Kafka broker logs, disk space, and broker status
+
+      - alert: KafkaUnderReplicatedPartitions
+        expr: sum(kafka_topic_partition_under_replicated_partition) > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: message-queue
+        annotations:
+          summary: Kafka under-replicated partitions
+          description: Kafka has {{ $value }} under-replicated partitions for more than 5 minutes
+          impact: Reduced redundancy and potential data loss in case of broker failure
+          action: Check Kafka broker logs, disk space, and network connectivity
+
+      - alert: KafkaConsumerGroupLag
+        expr: sum(kafka_consumergroup_lag) by (group) > 10000
+        for: 10m
+        labels:
+          severity: warning
+          category: message-queue
+        annotations:
+          summary: Kafka consumer group lag
+          description: Kafka consumer group {{ $labels.group }} has a lag of {{ $value }} messages for more than 10 minutes
+          impact: Message processing delay affecting real-time data flow
+          action: Check consumer status, processing capacity, and message volume
+
+      - alert: KafkaConsumerGroupLagIncreasing
+        expr: sum(kafka_consumergroup_lag) by (group) - sum(kafka_consumergroup_lag offset 5m) by (group) > 1000
+        for: 10m
+        labels:
+          severity: warning
+          category: message-queue
+        annotations:
+          summary: Kafka consumer group lag increasing
+          description: Kafka consumer group {{ $labels.group }} lag is increasing by more than 1000 messages every 5 minutes for more than 10 minutes
+          impact: Consumer falling behind producer, indicating processing bottleneck
+          action: Check consumer performance, scale consumers, or reduce message production rate
+
+      - alert: KafkaHighDiskUsage
+        expr: sum(kafka_log_log_size) by (topic) / 1024 / 1024 / 1024 > 50
+        for: 10m
+        labels:
+          severity: warning
+          category: message-queue
+        annotations:
+          summary: Kafka high disk usage
+          description: Kafka topic {{ $labels.topic }} is using more than 50GB of disk space for more than 10 minutes
+          impact: Risk of disk space exhaustion affecting message retention
+          action: Check topic retention policies, increase storage, or implement log compaction
+
+  - name: platform-availability
+    rules:
+      - alert: PlatformHighErrorRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          category: availability
+        annotations:
+          summary: Platform high error rate
+          description: Platform error rate is above 1% for more than 5 minutes
+          impact: Service degradation affecting user experience
+          action: Check service logs, error details, and backend service health
+
+      - alert: PlatformCriticalErrorRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: Platform critical error rate
+          description: Platform error rate is above 5% for more than 5 minutes
+          impact: Severe service degradation affecting many users
+          action: Initiate incident response, check all service logs and dependencies
+
+      - alert: PlatformHighResponseTime
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: Platform high response time
+          description: Platform 95th percentile response time is above 500ms for more than 5 minutes
+          impact: Degraded user experience and potential SLA violations
+          action: Check service performance, database queries, and resource utilization
+
+      - alert: PlatformCriticalResponseTime
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: critical
+          category: performance
+        annotations:
+          summary: Platform critical response time
+          description: Platform 95th percentile response time is above 1s for more than 5 minutes
+          impact: Severe performance degradation affecting user experience and SLA compliance
+          action: Initiate incident response, check all service performance and dependencies
+
+      - alert: PlatformLowAvailability
+        expr: sum(kube_deployment_status_replicas_available{deployment=~".+-service"}) / sum(kube_deployment_status_replicas{deployment=~".+-service"}) * 100 < 90
+        for: 5m
+        labels:
+          severity: warning
+          category: availability
+        annotations:
+          summary: Platform low availability
+          description: Platform service availability is below 90% for more than 5 minutes
+          impact: Reduced capacity and potential service degradation
+          action: Check deployment status, pod health, and resource constraints
+
+      - alert: PlatformCriticalAvailability
+        expr: sum(kube_deployment_status_replicas_available{deployment=~".+-service"}) / sum(kube_deployment_status_replicas{deployment=~".+-service"}) * 100 < 75
+        for: 5m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: Platform critical availability
+          description: Platform service availability is below 75% for more than 5 minutes
+          impact: Severe capacity reduction affecting service availability
+          action: Initiate incident response, check all deployment status and infrastructure health
+
+  - name: security-monitoring
+    rules:
+      - alert: UnauthorizedAccessAttempts
+        expr: sum(rate(http_requests_total{status="401"}[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: Unauthorized access attempts
+          description: More than 10 unauthorized access attempts per second for more than 5 minutes
+          impact: Potential brute force or credential stuffing attack
+          action: Check authentication logs, client IPs, and consider implementing rate limiting
+
+      - alert: SuspiciousLoginActivity
+        expr: sum(rate(suspicious_login_attempts_total[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: Suspicious login activity
+          description: More than 5 suspicious login attempts per second for more than 5 minutes
+          impact: Potential unauthorized access attempt
+          action: Check authentication logs, user accounts, and implement additional security measures
+
+      - alert: APIRateLimitExceeded
+        expr: sum(rate(rate_limiter_total{result="limited"}[5m])) > 50
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: API rate limit exceeded
+          description: More than 50 requests per second are being rate limited for more than 5 minutes
+          impact: Potential API abuse or DDoS attack
+          action: Check client IPs, request patterns, and consider adjusting rate limits or blocking abusive clients
+
+      - alert: PodSecurityPolicyViolation
+        expr: sum(increase(pod_security_policy_violations_total[5m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: Pod security policy violation
+          description: Pod security policy violations detected in the last 5 minutes
+          impact: Potential security breach or misconfiguration
+          action: Check pod security policy logs, pod configurations, and enforce compliance
+
+      - alert: NetworkPolicyViolation
+        expr: sum(increase(network_policy_violations_total[5m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: Network policy violation
+          description: Network policy violations detected in the last 5 minutes
+          impact: Unauthorized network communication attempts
+          action: Check network policy logs, pod communications, and enforce compliance
+
+      - alert: ContainerPrivilegeEscalation
+        expr: sum(increase(container_privilege_escalation_attempts_total[5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: Container privilege escalation
+          description: Container privilege escalation attempts detected in the last 5 minutes
+          impact: Potential security breach and unauthorized access
+          action: Immediately investigate container logs, isolate affected containers, and check for compromised systems
+
+  - name: backup-monitoring
+    rules:
+      - alert: BackupJobFailed
+        expr: backup_job_status{status="failed"} > 0
+        for: 5m
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: Backup job failed
+          description: Backup job {{ $labels.job }} has failed
+          impact: Data protection at risk, potential data loss in disaster scenarios
+          action: Check backup logs, storage availability, and database connectivity
+
+      - alert: BackupJobMissed
+        expr: time() - backup_job_last_success_timestamp > 86400
+        for: 1h
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: Backup job missed
+          description: Backup job {{ $labels.job }} has not completed successfully in the last 24 hours
+          impact: Data protection at risk, potential data loss in disaster scenarios
+          action: Check backup schedule, job status, and backup system health
+
+      - alert: BackupSizeAbnormal
+        expr: abs(backup_size_bytes - avg_over_time(backup_size_bytes[7d])) / avg_over_time(backup_size_bytes[7d]) > 0.5
+        for: 1h
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: Backup size abnormal
+          description: Backup job {{ $labels.job }} size has changed by more than 50% compared to the 7-day average
+          impact: Potential backup corruption or data integrity issues
+          action: Check backup content, database size changes, and backup configuration
+
+      - alert: BackupStorageHigh
+        expr: sum(backup_storage_used_bytes) / backup_storage_total_bytes * 100 > 80
+        for: 1h
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: Backup storage high
+          description: Backup storage usage is above 80% for more than 1 hour
+          impact: Risk of backup failures due to insufficient storage
+          action: Increase backup storage, review retention policies, or clean up old backups
+
+      - alert: WALArchivingFailing
+        expr: pg_stat_archiver_failed_count > 0
+        for: 5m
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: WAL archiving failing
+          description: PostgreSQL WAL archiving is failing on {{ $labels.instance }}
+          impact: Point-in-time recovery capability at risk, potential data loss
+          action: Check PostgreSQL logs, archive destination, and storage availability
+
+      - alert: RestoreTestFailed
+        expr: backup_restore_test_status{status="failed"} > 0
+        for: 5m
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: Restore test failed
+          description: Backup restore test for {{ $labels.job }} has failed
+          impact: Backup restoration capability at risk, potential data recovery issues
+          action: Check restore logs, backup integrity, and restoration process
