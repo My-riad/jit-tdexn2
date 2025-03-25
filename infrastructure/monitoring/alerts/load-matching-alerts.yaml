@@ -1,0 +1,401 @@
+groups:
+  - name: load-matching-availability
+    description: Alerts for Load Matching Service availability issues
+    rules:
+    - alert: LoadMatchingServiceDown
+      expr: sum(up{job="load-matching-service"}) < 1
+      for: 1m
+      labels:
+        severity: critical
+        service: load-matching-service
+        category: availability
+      annotations:
+        summary: Load Matching Service is down
+        description: Load Matching Service has been down for more than 1 minute
+        impact: Drivers cannot receive load recommendations or accept loads
+        action: Check Load Matching Service logs, pod status, and infrastructure
+
+    - alert: LoadMatchingServiceHighUnavailability
+      expr: sum(kube_deployment_status_replicas_available{deployment="load-matching-service"}) / sum(kube_deployment_status_replicas{deployment="load-matching-service"}) < 0.7
+      for: 5m
+      labels:
+        severity: critical
+        service: load-matching-service
+        category: availability
+      annotations:
+        summary: Load Matching Service high unavailability
+        description: Less than 70% of Load Matching Service replicas are available for more than 5 minutes
+        impact: Reduced capacity and potential service degradation for load matching
+        action: Check pod status, logs, and deployment events
+
+    - alert: LoadMatchingServiceReplicasMismatch
+      expr: kube_deployment_spec_replicas{deployment="load-matching-service"} != kube_deployment_status_replicas_available{deployment="load-matching-service"}
+      for: 15m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: availability
+      annotations:
+        summary: Load Matching Service replicas mismatch
+        description: Deployment replicas do not match available replicas for more than 15 minutes
+        impact: Potential scaling issues or pod failures
+        action: Check deployment status, pod events, and container logs
+
+  - name: load-matching-performance
+    description: Alerts for Load Matching Service performance issues
+    rules:
+    - alert: LoadMatchingServiceHighResponseTime
+      expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="load-matching-service"}[5m])) by (le)) > 0.5
+      for: 5m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: performance
+      annotations:
+        summary: Load Matching Service high response time
+        description: 95th percentile response time is above 500ms for more than 5 minutes
+        impact: Slow load recommendations affecting driver experience
+        action: Check Load Matching Service performance, database queries, and resource utilization
+
+    - alert: LoadMatchingServiceCriticalResponseTime
+      expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="load-matching-service"}[5m])) by (le)) > 1
+      for: 5m
+      labels:
+        severity: critical
+        service: load-matching-service
+        category: performance
+      annotations:
+        summary: Load Matching Service critical response time
+        description: 95th percentile response time is above 1s for more than 5 minutes
+        impact: Severe performance degradation affecting driver experience and load acceptance
+        action: Immediate investigation required, check service logs and dependencies
+
+    - alert: LoadMatchingServiceSlowEndpoints
+      expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="load-matching-service"}[5m])) by (le, path)) > 1
+      for: 5m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: performance
+      annotations:
+        summary: Load Matching Service slow endpoints detected
+        description: Endpoint {{ $labels.path }} has 95th percentile response time above 1s for more than 5 minutes
+        impact: Specific endpoint performance degradation affecting user experience
+        action: Investigate specific endpoint and corresponding database queries
+
+    - alert: LoadMatchingServiceHighRecommendationLatency
+      expr: histogram_quantile(0.95, sum(rate(load_recommendation_duration_seconds_bucket{job="load-matching-service"}[5m])) by (le)) > 2
+      for: 5m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: performance
+      annotations:
+        summary: Load Matching Service high recommendation latency
+        description: 95th percentile of load recommendation generation time is above 2 seconds for more than 5 minutes
+        impact: Slow load recommendations affecting driver experience
+        action: Check optimization engine integration and recommendation algorithm performance
+
+  - name: load-matching-errors
+    description: Alerts for Load Matching Service error conditions
+    rules:
+    - alert: LoadMatchingServiceHighErrorRate
+      expr: sum(rate(http_requests_total{job="load-matching-service", status=~"5.."}[5m])) / sum(rate(http_requests_total{job="load-matching-service"}[5m])) > 0.01
+      for: 5m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: errors
+      annotations:
+        summary: Load Matching Service high error rate
+        description: Error rate is above 1% for more than 5 minutes
+        impact: Some load matching requests are failing, affecting driver experience
+        action: Check Load Matching Service logs and dependent service status
+
+    - alert: LoadMatchingServiceCriticalErrorRate
+      expr: sum(rate(http_requests_total{job="load-matching-service", status=~"5.."}[5m])) / sum(rate(http_requests_total{job="load-matching-service"}[5m])) > 0.05
+      for: 5m
+      labels:
+        severity: critical
+        service: load-matching-service
+        category: errors
+      annotations:
+        summary: Load Matching Service critical error rate
+        description: Error rate is above 5% for more than 5 minutes
+        impact: Significant number of load matching requests are failing, severely affecting driver experience
+        action: Immediate investigation required, check service logs and dependencies
+
+    - alert: LoadMatchingServiceHighMatchFailureRate
+      expr: sum(rate(load_match_operations_total{job="load-matching-service", status="failed"}[5m])) / sum(rate(load_match_operations_total{job="load-matching-service"}[5m])) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: errors
+      annotations:
+        summary: Load Matching Service high match failure rate
+        description: Match operation failure rate is above 5% for more than 5 minutes
+        impact: Drivers unable to be matched with appropriate loads
+        action: Check match operation logs and optimization engine integration
+
+    - alert: LoadMatchingServiceReservationFailures
+      expr: sum(rate(load_reservation_operations_total{job="load-matching-service", status="failed"}[5m])) > 5
+      for: 5m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: errors
+      annotations:
+        summary: Load Matching Service reservation failures
+        description: More than 5 load reservation failures per minute for more than 5 minutes
+        impact: Drivers unable to reserve loads, affecting load acceptance workflow
+        action: Check reservation service logs and database connectivity
+
+  - name: load-matching-resources
+    description: Alerts for Load Matching Service resource utilization
+    rules:
+    - alert: LoadMatchingServiceHighCPUUsage
+      expr: sum(rate(container_cpu_usage_seconds_total{pod=~"load-matching-service-.*"}[5m])) by (pod) / sum(kube_pod_container_resource_limits{pod=~"load-matching-service-.*", resource="cpu"}) by (pod) > 0.7
+      for: 15m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: resources
+      annotations:
+        summary: Load Matching Service high CPU usage
+        description: Pod {{ $labels.pod }} is using more than 70% of its CPU limit for more than 15 minutes
+        impact: Risk of performance degradation if usage continues to increase
+        action: Check Load Matching Service load and consider scaling if necessary
+
+    - alert: LoadMatchingServiceHighMemoryUsage
+      expr: sum(container_memory_working_set_bytes{pod=~"load-matching-service-.*"}) by (pod) / sum(kube_pod_container_resource_limits{pod=~"load-matching-service-.*", resource="memory"}) by (pod) > 0.7
+      for: 15m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: resources
+      annotations:
+        summary: Load Matching Service high memory usage
+        description: Pod {{ $labels.pod }} is using more than 70% of its memory limit for more than 15 minutes
+        impact: Risk of OOM kills if usage continues to increase
+        action: Check Load Matching Service memory usage patterns and consider scaling if necessary
+
+    - alert: LoadMatchingServiceCriticalCPUUsage
+      expr: sum(rate(container_cpu_usage_seconds_total{pod=~"load-matching-service-.*"}[5m])) by (pod) / sum(kube_pod_container_resource_limits{pod=~"load-matching-service-.*", resource="cpu"}) by (pod) > 0.9
+      for: 5m
+      labels:
+        severity: critical
+        service: load-matching-service
+        category: resources
+      annotations:
+        summary: Load Matching Service critical CPU usage
+        description: Pod {{ $labels.pod }} is using more than 90% of its CPU limit for more than 5 minutes
+        impact: Severe performance degradation and potential throttling
+        action: Immediate scaling required or investigate high CPU usage cause
+
+    - alert: LoadMatchingServiceCriticalMemoryUsage
+      expr: sum(container_memory_working_set_bytes{pod=~"load-matching-service-.*"}) by (pod) / sum(kube_pod_container_resource_limits{pod=~"load-matching-service-.*", resource="memory"}) by (pod) > 0.9
+      for: 5m
+      labels:
+        severity: critical
+        service: load-matching-service
+        category: resources
+      annotations:
+        summary: Load Matching Service critical memory usage
+        description: Pod {{ $labels.pod }} is using more than 90% of its memory limit for more than 5 minutes
+        impact: Imminent risk of OOM kills and service disruption
+        action: Immediate scaling required or investigate memory usage cause
+
+  - name: load-matching-business-metrics
+    description: Alerts for Load Matching Service business metrics
+    rules:
+    - alert: LoadMatchingServiceLowMatchRate
+      expr: sum(rate(load_match_operations_total{job="load-matching-service", status="success"}[30m])) / sum(rate(load_match_operations_total{job="load-matching-service"}[30m])) < 0.8
+      for: 30m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: business
+      annotations:
+        summary: Load Matching Service low match rate
+        description: Successful match rate is below 80% for more than 30 minutes
+        impact: Reduced efficiency in load matching affecting network optimization
+        action: Check match quality metrics and optimization parameters
+
+    - alert: LoadMatchingServiceLowAcceptanceRate
+      expr: sum(rate(load_match_acceptance_total{job="load-matching-service", status="accepted"}[1h])) / sum(rate(load_match_acceptance_total{job="load-matching-service"}[1h])) < 0.4
+      for: 1h
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: business
+      annotations:
+        summary: Load Matching Service low acceptance rate
+        description: Load acceptance rate is below 40% for more than 1 hour
+        impact: Drivers rejecting recommended loads, reducing network efficiency
+        action: Review recommendation quality and driver feedback
+
+    - alert: LoadMatchingServiceHighReservationExpiry
+      expr: sum(rate(load_reservation_operations_total{job="load-matching-service", status="expired"}[30m])) / sum(rate(load_reservation_operations_total{job="load-matching-service", status="created"}[30m])) > 0.2
+      for: 30m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: business
+      annotations:
+        summary: Load Matching Service high reservation expiry rate
+        description: More than 20% of load reservations are expiring without action for more than 30 minutes
+        impact: Drivers reserving loads but not completing acceptance, affecting load availability
+        action: Review reservation workflow and driver behavior patterns
+
+    - alert: LoadMatchingServiceLowEfficiencyScore
+      expr: avg(load_match_efficiency_score{job="load-matching-service"}) < 70
+      for: 1h
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: business
+      annotations:
+        summary: Load Matching Service low efficiency score
+        description: Average efficiency score for matches is below 70 for more than 1 hour
+        impact: Suboptimal load matching affecting network efficiency and empty miles reduction
+        action: Review optimization algorithms and efficiency scoring parameters
+
+  - name: load-matching-dependencies
+    description: Alerts for Load Matching Service dependencies
+    rules:
+    - alert: LoadMatchingServiceOptimizationEngineUnavailable
+      expr: sum(optimization_engine_availability{job="load-matching-service"}) == 0
+      for: 5m
+      labels:
+        severity: critical
+        service: load-matching-service
+        category: dependencies
+      annotations:
+        summary: Optimization Engine unavailable for Load Matching Service
+        description: Optimization Engine has been unavailable for more than 5 minutes
+        impact: Cannot generate optimized load matches, affecting core functionality
+        action: Check Optimization Engine status and connectivity
+
+    - alert: LoadMatchingServiceDriverServiceUnavailable
+      expr: sum(driver_service_availability{job="load-matching-service"}) == 0
+      for: 5m
+      labels:
+        severity: critical
+        service: load-matching-service
+        category: dependencies
+      annotations:
+        summary: Driver Service unavailable for Load Matching Service
+        description: Driver Service has been unavailable for more than 5 minutes
+        impact: Cannot retrieve driver information for matching
+        action: Check Driver Service status and connectivity
+
+    - alert: LoadMatchingServiceLoadServiceUnavailable
+      expr: sum(load_service_availability{job="load-matching-service"}) == 0
+      for: 5m
+      labels:
+        severity: critical
+        service: load-matching-service
+        category: dependencies
+      annotations:
+        summary: Load Service unavailable for Load Matching Service
+        description: Load Service has been unavailable for more than 5 minutes
+        impact: Cannot retrieve load information for matching
+        action: Check Load Service status and connectivity
+
+    - alert: LoadMatchingServiceCircuitBreakerOpen
+      expr: circuit_breaker_state{job="load-matching-service", state="open"} > 0
+      for: 1m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: dependencies
+      annotations:
+        summary: Load Matching Service circuit breaker open
+        description: Circuit breaker for service {{ $labels.service }} is in open state for more than 1 minute
+        impact: Requests to {{ $labels.service }} are failing fast, affecting matching functionality
+        action: Check the health of the {{ $labels.service }} and its dependencies
+
+  - name: load-matching-traffic
+    description: Alerts for Load Matching Service traffic patterns
+    rules:
+    - alert: LoadMatchingServiceHighTraffic
+      expr: sum(rate(http_requests_total{job="load-matching-service"}[5m])) > 500
+      for: 15m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: traffic
+      annotations:
+        summary: Load Matching Service high traffic
+        description: Load Matching Service is processing more than 500 requests per second for more than 15 minutes
+        impact: High load may affect performance if sustained
+        action: Monitor performance metrics and consider scaling if necessary
+
+    - alert: LoadMatchingServiceLowTraffic
+      expr: sum(rate(http_requests_total{job="load-matching-service"}[30m])) < 1 unless sum(rate(http_requests_total{job="load-matching-service"}[5m])) == 0
+      for: 30m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: traffic
+      annotations:
+        summary: Load Matching Service low traffic
+        description: Load Matching Service is processing less than 1 request per second for more than 30 minutes during business hours
+        impact: Potential issue with client connectivity or upstream services
+        action: Verify client connectivity and upstream service health
+
+    - alert: LoadMatchingServiceTrafficSpike
+      expr: sum(rate(http_requests_total{job="load-matching-service"}[5m])) > 2 * sum(rate(http_requests_total{job="load-matching-service"}[1h] offset 5m))
+      for: 5m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: traffic
+      annotations:
+        summary: Load Matching Service traffic spike
+        description: Load Matching Service traffic has increased by more than 100% compared to the previous hour
+        impact: Sudden increase in load may affect performance
+        action: Check for expected traffic patterns and monitor service performance
+
+  - name: load-matching-nodejs
+    description: Alerts for Load Matching Service Node.js runtime issues
+    rules:
+    - alert: LoadMatchingServiceNodeJSHighEventLoopLag
+      expr: nodejs_eventloop_lag_seconds{pod=~"load-matching-service-.*"} > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: nodejs
+      annotations:
+        summary: Load Matching Service Node.js high event loop lag
+        description: Pod {{ $labels.pod }} has event loop lag above 100ms for more than 5 minutes
+        impact: JavaScript execution is delayed, affecting request processing
+        action: Check for CPU-intensive operations or blocking code
+
+    - alert: LoadMatchingServiceNodeJSHighHeapUsage
+      expr: nodejs_heap_size_used_bytes{pod=~"load-matching-service-.*"} / nodejs_heap_size_total_bytes{pod=~"load-matching-service-.*"} > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: nodejs
+      annotations:
+        summary: Load Matching Service Node.js high heap usage
+        description: Pod {{ $labels.pod }} is using more than 80% of its V8 heap for more than 5 minutes
+        impact: Risk of memory-related performance issues or crashes
+        action: Check for memory leaks or increase memory limits
+
+    - alert: LoadMatchingServiceNodeJSHighGCDuration
+      expr: rate(nodejs_gc_duration_seconds_sum{pod=~"load-matching-service-.*"}[5m]) / rate(nodejs_gc_duration_seconds_count{pod=~"load-matching-service-.*"}[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        service: load-matching-service
+        category: nodejs
+      annotations:
+        summary: Load Matching Service Node.js high GC duration
+        description: Pod {{ $labels.pod }} is spending more than 10% of time in garbage collection for more than 5 minutes
+        impact: Garbage collection is affecting application performance
+        action: Check memory usage patterns and optimize memory allocation
