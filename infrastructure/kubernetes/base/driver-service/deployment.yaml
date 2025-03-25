@@ -1,0 +1,224 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: driver-service
+  namespace: default
+  labels:
+    app: driver-service
+    component: backend
+    part-of: freight-optimization
+  annotations:
+    description: "Driver Service for managing driver profiles, preferences, availability, and HOS compliance"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: driver-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: driver-service
+        component: backend
+        part-of: freight-optimization
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3002"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: driver-service
+        image: {{ .Values.image.repository }}/driver-service:{{ .Values.image.tag }}
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3002
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3002"
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: LOG_LEVEL
+        - name: ENABLE_SWAGGER
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: ENABLE_SWAGGER
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: DB_PORT
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: DB_NAME
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: REDIS_PORT
+        - name: KAFKA_BROKERS
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: KAFKA_BROKERS
+        - name: KAFKA_CONSUMER_GROUP
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: KAFKA_CONSUMER_GROUP
+        - name: POSITION_UPDATE_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: POSITION_UPDATE_TOPIC
+        - name: DRIVER_EVENTS_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: DRIVER_EVENTS_TOPIC
+        - name: ELD_UPDATES_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: ELD_UPDATES_TOPIC
+        - name: HOS_RETENTION_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: HOS_RETENTION_DAYS
+        - name: POSITION_RETENTION_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: POSITION_RETENTION_DAYS
+        - name: ENABLE_ELD_INTEGRATION
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: ENABLE_ELD_INTEGRATION
+        - name: ELD_POLLING_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: ELD_POLLING_INTERVAL
+        - name: KEEPTRUCKIN_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: KEEPTRUCKIN_API_URL
+        - name: OMNITRACS_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: OMNITRACS_API_URL
+        - name: SAMSARA_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: SAMSARA_API_URL
+        - name: API_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: API_PREFIX
+        - name: SERVICE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: SERVICE_NAME
+        - name: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+        - name: CIRCUIT_BREAKER_RESET_TIMEOUT_MS
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: CIRCUIT_BREAKER_RESET_TIMEOUT_MS
+        - name: SERVICE_HEALTH_CHECK_INTERVAL_MS
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: SERVICE_HEALTH_CHECK_INTERVAL_MS
+        - name: SERVICE_TIMEOUT_MS
+          valueFrom:
+            configMapKeyRef:
+              name: driver-service-config
+              key: SERVICE_TIMEOUT_MS
+        resources:
+          requests:
+            cpu: "0.5"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: config-volume
+        configMap:
+          name: driver-service-config
+      - name: tmp-volume
+        emptyDir: {}
+      nodeSelector:
+        role: application
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - driver-service
+              topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
