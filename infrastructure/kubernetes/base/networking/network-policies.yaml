@@ -1,0 +1,607 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-gateway-ingress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - port: 3000
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-gateway-egress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: auth-service
+    ports:
+    - port: 3001
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: driver-service
+    ports:
+    - port: 3002
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: load-service
+    ports:
+    - port: 3003
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: load-matching-service
+    ports:
+    - port: 3004
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: tracking-service
+    ports:
+    - port: 3005
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: gamification-service
+    ports:
+    - port: 3006
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: market-intelligence-service
+    ports:
+    - port: 3007
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: notification-service
+    ports:
+    - port: 3008
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: optimization-engine
+    ports:
+    - port: 3003
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: integration-service
+    ports:
+    - port: 3009
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - port: 6379
+      protocol: TCP
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-tracking-service-ingress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchLabels:
+      app: tracking-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    ports:
+    - port: 3005
+      protocol: TCP
+  - from:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - port: 3005
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-tracking-service-egress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchLabels:
+      app: tracking-service
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - port: 6379
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: timescaledb
+    ports:
+    - port: 5432
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: kafka
+    ports:
+    - port: 9092
+      protocol: TCP
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-notification-service-ingress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchLabels:
+      app: notification-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    ports:
+    - port: 3008
+      protocol: TCP
+  - from:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - port: 3008
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-load-matching-service-ingress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchLabels:
+      app: load-matching-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    ports:
+    - port: 3004
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-load-matching-service-egress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchLabels:
+      app: load-matching-service
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - port: 6379
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgresql
+    ports:
+    - port: 5432
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: optimization-engine
+    ports:
+    - port: 3003
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: kafka
+    ports:
+    - port: 9092
+      protocol: TCP
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-optimization-engine-ingress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchLabels:
+      app: optimization-engine
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    ports:
+    - port: 3003
+      protocol: TCP
+  - from:
+    - podSelector:
+        matchLabels:
+          app: load-matching-service
+    ports:
+    - port: 3003
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-optimization-engine-egress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchLabels:
+      app: optimization-engine
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - port: 6379
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgresql
+    ports:
+    - port: 5432
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: timescaledb
+    ports:
+    - port: 5432
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: kafka
+    ports:
+    - port: 9092
+      protocol: TCP
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - port: 443
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-database-ingress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - postgresql
+      - timescaledb
+      - mongodb
+      - redis
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - api-gateway
+          - auth-service
+          - driver-service
+          - load-service
+          - load-matching-service
+          - tracking-service
+          - gamification-service
+          - market-intelligence-service
+          - notification-service
+          - optimization-engine
+          - integration-service
+          - event-bus
+          - cache-service
+          - data-service
+    ports:
+    - port: 5432
+      protocol: TCP
+    - port: 6379
+      protocol: TCP
+    - port: 27017
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kafka-ingress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchLabels:
+      app: kafka
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - driver-service
+          - load-service
+          - load-matching-service
+          - tracking-service
+          - gamification-service
+          - market-intelligence-service
+          - notification-service
+          - optimization-engine
+          - integration-service
+          - event-bus
+    ports:
+    - port: 9092
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-ingress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - prometheus
+      - grafana
+      - alertmanager
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - port: 9090
+      protocol: TCP
+    - port: 3000
+      protocol: TCP
+    - port: 9093
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scraping
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector:
+    matchExpressions:
+    - key: prometheus.io/scrape
+      operator: In
+      values:
+      - "true"
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - port: 3000
+      protocol: TCP
+    - port: 3001
+      protocol: TCP
+    - port: 3002
+      protocol: TCP
+    - port: 3003
+      protocol: TCP
+    - port: 3004
+      protocol: TCP
+    - port: 3005
+      protocol: TCP
+    - port: 3006
+      protocol: TCP
+    - port: 3007
+      protocol: TCP
+    - port: 3008
+      protocol: TCP
+    - port: 3009
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: default
+  labels:
+    app: freight-optimization
+    component: networking
+    part-of: freight-optimization
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
