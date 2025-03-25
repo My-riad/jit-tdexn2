@@ -1,0 +1,306 @@
+# Prometheus alerting rules for Authentication Service
+# These alerts monitor the Authentication Service to ensure it meets SLA requirements
+# and detects issues related to availability, performance, and security.
+
+groups:
+- name: auth-service-availability
+  rules:
+  - alert: AuthServiceDown
+    expr: sum(up{job="auth-service"}) < 1
+    for: 1m
+    labels:
+      severity: critical
+      category: availability
+    annotations:
+      summary: Authentication Service is down
+      description: Authentication Service has been down for more than 1 minute
+      impact: Users cannot authenticate, affecting all platform access
+      action: Check Authentication Service logs, pod status, and infrastructure
+      
+  - alert: AuthServiceHighUnavailability
+    expr: sum(kube_deployment_status_replicas_available{deployment="auth-service"}) / sum(kube_deployment_status_replicas{deployment="auth-service"}) < 0.7
+    for: 5m
+    labels:
+      severity: critical
+      category: availability
+    annotations:
+      summary: Authentication Service high unavailability
+      description: Less than 70% of Authentication Service replicas are available for more than 5 minutes
+      impact: Reduced authentication capacity and potential service degradation
+      action: Check pod status, logs, and deployment events
+      
+  - alert: AuthServiceReplicasMismatch
+    expr: kube_deployment_spec_replicas{deployment="auth-service"} != kube_deployment_status_replicas_available{deployment="auth-service"}
+    for: 15m
+    labels:
+      severity: warning
+      category: availability
+    annotations:
+      summary: Authentication Service replicas mismatch
+      description: Deployment replicas do not match available replicas for more than 15 minutes
+      impact: Potential scaling issues or pod failures
+      action: Check deployment status, pod events, and container logs
+
+- name: auth-service-performance
+  rules:
+  - alert: AuthServiceHighResponseTime
+    expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="auth-service"}[5m])) by (le)) > 0.5
+    for: 5m
+    labels:
+      severity: warning
+      category: performance
+    annotations:
+      summary: Authentication Service high response time
+      description: 95th percentile response time is above 500ms for more than 5 minutes
+      impact: User login experience degradation and potential SLA violations
+      action: Check Authentication Service performance, database connections, and resource utilization
+      
+  - alert: AuthServiceCriticalResponseTime
+    expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="auth-service"}[5m])) by (le)) > 1
+    for: 5m
+    labels:
+      severity: critical
+      category: performance
+    annotations:
+      summary: Authentication Service critical response time
+      description: 95th percentile response time is above 1s for more than 5 minutes
+      impact: Severe authentication delays affecting all platform users
+      action: Immediate investigation of Authentication Service and database required
+      
+  - alert: AuthServiceSlowEndpoints
+    expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="auth-service"}[5m])) by (le, path)) > 1
+    for: 5m
+    labels:
+      severity: warning
+      category: performance
+    annotations:
+      summary: Authentication Service slow endpoints detected
+      description: Endpoint {{ $labels.path }} has 95th percentile response time above 1s for more than 5 minutes
+      impact: Specific authentication operation experiencing delays
+      action: Investigate specific endpoint performance and database queries
+
+- name: auth-service-errors
+  rules:
+  - alert: AuthServiceHighErrorRate
+    expr: sum(rate(http_requests_total{job="auth-service", status=~"5.."}[5m])) / sum(rate(http_requests_total{job="auth-service"}[5m])) > 0.01
+    for: 5m
+    labels:
+      severity: warning
+      category: errors
+    annotations:
+      summary: Authentication Service high error rate
+      description: Error rate is above 1% for more than 5 minutes
+      impact: Some authentication requests are failing, affecting user access
+      action: Check Authentication Service logs and database connection status
+      
+  - alert: AuthServiceCriticalErrorRate
+    expr: sum(rate(http_requests_total{job="auth-service", status=~"5.."}[5m])) / sum(rate(http_requests_total{job="auth-service"}[5m])) > 0.05
+    for: 5m
+    labels:
+      severity: critical
+      category: errors
+    annotations:
+      summary: Authentication Service critical error rate
+      description: Error rate is above 5% for more than 5 minutes
+      impact: Significant number of authentication requests are failing, severely affecting platform access
+      action: Immediate investigation required, check Authentication Service and database
+      
+  - alert: AuthServiceLoginFailures
+    expr: sum(rate(auth_login_failures_total{job="auth-service"}[5m])) > 5
+    for: 5m
+    labels:
+      severity: warning
+      category: errors
+    annotations:
+      summary: Authentication Service high login failure rate
+      description: More than 5 login failures per second for more than 5 minutes
+      impact: Users experiencing login issues or potential brute force attempts
+      action: Check for legitimate login issues or security incidents
+      
+  - alert: AuthServiceTokenValidationFailures
+    expr: sum(rate(auth_token_validation_failures_total{job="auth-service"}[5m])) > 10
+    for: 5m
+    labels:
+      severity: warning
+      category: errors
+    annotations:
+      summary: Authentication Service high token validation failure rate
+      description: More than 10 token validation failures per second for more than 5 minutes
+      impact: Users experiencing session issues or potential token forgery attempts
+      action: Check for expired tokens, client implementation issues, or security incidents
+
+- name: auth-service-resources
+  rules:
+  - alert: AuthServiceHighCPUUsage
+    expr: sum(rate(container_cpu_usage_seconds_total{pod=~"auth-service-.*"}[5m])) by (pod) / sum(kube_pod_container_resource_limits{pod=~"auth-service-.*", resource="cpu"}) by (pod) > 0.7
+    for: 15m
+    labels:
+      severity: warning
+      category: resources
+    annotations:
+      summary: Authentication Service high CPU usage
+      description: Pod {{ $labels.pod }} is using more than 70% of its CPU limit for more than 15 minutes
+      impact: Risk of authentication performance degradation if usage continues to increase
+      action: Check Authentication Service load and consider scaling if necessary
+      
+  - alert: AuthServiceHighMemoryUsage
+    expr: sum(container_memory_working_set_bytes{pod=~"auth-service-.*"}) by (pod) / sum(kube_pod_container_resource_limits{pod=~"auth-service-.*", resource="memory"}) by (pod) > 0.7
+    for: 15m
+    labels:
+      severity: warning
+      category: resources
+    annotations:
+      summary: Authentication Service high memory usage
+      description: Pod {{ $labels.pod }} is using more than 70% of its memory limit for more than 15 minutes
+      impact: Risk of OOM kills if usage continues to increase
+      action: Check Authentication Service memory usage patterns and consider scaling if necessary
+      
+  - alert: AuthServiceCriticalCPUUsage
+    expr: sum(rate(container_cpu_usage_seconds_total{pod=~"auth-service-.*"}[5m])) by (pod) / sum(kube_pod_container_resource_limits{pod=~"auth-service-.*", resource="cpu"}) by (pod) > 0.9
+    for: 5m
+    labels:
+      severity: critical
+      category: resources
+    annotations:
+      summary: Authentication Service critical CPU usage
+      description: Pod {{ $labels.pod }} is using more than 90% of its CPU limit for more than 5 minutes
+      impact: Severe authentication performance degradation and potential throttling
+      action: Immediate scaling required or investigate high CPU usage cause
+      
+  - alert: AuthServiceCriticalMemoryUsage
+    expr: sum(container_memory_working_set_bytes{pod=~"auth-service-.*"}) by (pod) / sum(kube_pod_container_resource_limits{pod=~"auth-service-.*", resource="memory"}) by (pod) > 0.9
+    for: 5m
+    labels:
+      severity: critical
+      category: resources
+    annotations:
+      summary: Authentication Service critical memory usage
+      description: Pod {{ $labels.pod }} is using more than 90% of its memory limit for more than 5 minutes
+      impact: Imminent risk of OOM kills and authentication service disruption
+      action: Immediate scaling required or investigate memory usage cause
+
+- name: auth-service-security
+  rules:
+  - alert: AuthServiceBruteForceAttempts
+    expr: sum(rate(auth_login_failures_total{job="auth-service"}[5m])) by (ip_address) > 10
+    for: 5m
+    labels:
+      severity: critical
+      category: security
+    annotations:
+      summary: Authentication Service brute force attempts detected
+      description: More than 10 login failures per second from IP {{ $labels.ip_address }} for more than 5 minutes
+      impact: Potential brute force attack against user accounts
+      action: Investigate IP address and consider temporary blocking if malicious
+      
+  - alert: AuthServiceAccountLockouts
+    expr: sum(rate(auth_account_lockouts_total{job="auth-service"}[15m])) > 5
+    for: 5m
+    labels:
+      severity: warning
+      category: security
+    annotations:
+      summary: Authentication Service high account lockout rate
+      description: More than 5 account lockouts per minute for more than 5 minutes
+      impact: Multiple users locked out, potential credential stuffing attack
+      action: Investigate lockout patterns and check for security incidents
+      
+  - alert: AuthServiceUnauthorizedAccessAttempts
+    expr: sum(rate(auth_unauthorized_access_attempts_total{job="auth-service"}[5m])) > 10
+    for: 5m
+    labels:
+      severity: warning
+      category: security
+    annotations:
+      summary: Authentication Service high unauthorized access attempts
+      description: More than 10 unauthorized access attempts per second for more than 5 minutes
+      impact: Potential security breach attempts
+      action: Investigate source of unauthorized requests and check for suspicious patterns
+      
+  - alert: AuthServiceSuspiciousTokenActivity
+    expr: sum(rate(auth_token_blacklisted_total{job="auth-service", reason="suspicious"}[5m])) > 2
+    for: 5m
+    labels:
+      severity: critical
+      category: security
+    annotations:
+      summary: Authentication Service suspicious token activity
+      description: More than 2 tokens blacklisted for suspicious activity per second for more than 5 minutes
+      impact: Potential token theft or replay attacks
+      action: Investigate blacklisted tokens and affected user accounts
+
+- name: auth-service-token-management
+  rules:
+  - alert: AuthServiceHighTokenRevocationRate
+    expr: sum(rate(auth_token_revocations_total{job="auth-service"}[5m])) > 20
+    for: 15m
+    labels:
+      severity: warning
+      category: security
+    annotations:
+      summary: Authentication Service high token revocation rate
+      description: More than 20 token revocations per second for more than 15 minutes
+      impact: Unusual session termination pattern, potential security issue
+      action: Investigate token revocation patterns and check for security incidents
+      
+  - alert: AuthServiceHighRefreshTokenUsage
+    expr: sum(rate(auth_refresh_token_usage_total{job="auth-service"}[5m])) / sum(rate(auth_login_success_total{job="auth-service"}[5m])) > 10
+    for: 30m
+    labels:
+      severity: warning
+      category: usage
+    annotations:
+      summary: Authentication Service high refresh token usage
+      description: Refresh token usage is more than 10x the login rate for more than 30 minutes
+      impact: Unusual token refresh pattern, potential client implementation issue
+      action: Investigate client applications and token refresh patterns
+      
+  - alert: AuthServiceTokenDatabaseSize
+    expr: auth_token_database_size_bytes{job="auth-service"} > 1073741824
+    for: 30m
+    labels:
+      severity: warning
+      category: resources
+    annotations:
+      summary: Authentication Service token database size
+      description: Token database size is larger than 1GB for more than 30 minutes
+      impact: Risk of performance degradation due to large token database
+      action: Check token cleanup processes and consider purging expired tokens
+
+- name: auth-service-nodejs
+  rules:
+  - alert: AuthServiceNodeJSHighEventLoopLag
+    expr: nodejs_eventloop_lag_seconds{pod=~"auth-service-.*"} > 0.1
+    for: 5m
+    labels:
+      severity: warning
+      category: performance
+    annotations:
+      summary: Authentication Service Node.js high event loop lag
+      description: Pod {{ $labels.pod }} has event loop lag above 100ms for more than 5 minutes
+      impact: JavaScript execution is delayed, affecting authentication request processing
+      action: Check for CPU-intensive operations or blocking code in Authentication Service
+      
+  - alert: AuthServiceNodeJSHighHeapUsage
+    expr: nodejs_heap_size_used_bytes{pod=~"auth-service-.*"} / nodejs_heap_size_total_bytes{pod=~"auth-service-.*"} > 0.8
+    for: 5m
+    labels:
+      severity: warning
+      category: resources
+    annotations:
+      summary: Authentication Service Node.js high heap usage
+      description: Pod {{ $labels.pod }} is using more than 80% of its V8 heap for more than 5 minutes
+      impact: Risk of memory-related performance issues or crashes
+      action: Check for memory leaks or increase memory limits for Authentication Service
+      
+  - alert: AuthServiceNodeJSHighGCDuration
+    expr: rate(nodejs_gc_duration_seconds_sum{pod=~"auth-service-.*"}[5m]) / rate(nodejs_gc_duration_seconds_count{pod=~"auth-service-.*"}[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+      category: performance
+    annotations:
+      summary: Authentication Service Node.js high GC duration
+      description: Pod {{ $labels.pod }} is spending more than 10% of time in garbage collection for more than 5 minutes
+      impact: Garbage collection is affecting authentication service performance
+      action: Check memory usage patterns and optimize memory allocation in Authentication Service
