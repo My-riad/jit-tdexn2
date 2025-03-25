@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: default
+  labels:
+    app: auth-service
+    component: auth-service
+    part-of: freight-optimization
+  annotations:
+    description: "Service for the Authentication Service component of the AI-driven Freight Optimization Platform"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3001"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3001
+      protocol: TCP
+  selector:
+    app: auth-service
+  sessionAffinity: None
