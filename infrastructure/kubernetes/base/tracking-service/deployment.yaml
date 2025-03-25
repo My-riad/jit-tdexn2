@@ -1,0 +1,217 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tracking-service
+  namespace: default
+  labels:
+    app: tracking-service
+    component: tracking-service
+    part-of: freight-optimization
+  annotations:
+    description: "Real-time Tracking Service for the AI-driven Freight Optimization Platform"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: tracking-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: tracking-service
+        component: tracking-service
+        part-of: freight-optimization
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3006"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: tracking-service
+        image: "{{ .Values.image.repository }}/tracking-service:{{ .Values.image.tag }}"
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3006
+          protocol: TCP
+        - name: websocket
+          containerPort: 3006
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3006"
+        - name: WEBSOCKET_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: WEBSOCKET_ENABLED
+        - name: WEBSOCKET_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: WEBSOCKET_PATH
+        - name: POSITION_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: POSITION_TOPIC
+        - name: GEOFENCE_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: GEOFENCE_TOPIC
+        - name: CONSUMER_GROUP_ID
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: CONSUMER_GROUP_ID
+        - name: POSITION_CACHE_TTL
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: POSITION_CACHE_TTL
+        - name: POSITION_HISTORY_RETENTION_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: POSITION_HISTORY_RETENTION_DAYS
+        - name: POSITION_DOWNSAMPLING_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: POSITION_DOWNSAMPLING_ENABLED
+        - name: POSITION_DOWNSAMPLING_THRESHOLD
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: POSITION_DOWNSAMPLING_THRESHOLD
+        - name: SIGNIFICANT_MOVEMENT_THRESHOLD
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: SIGNIFICANT_MOVEMENT_THRESHOLD
+        - name: GEOFENCE_CHECK_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: GEOFENCE_CHECK_ENABLED
+        - name: ETA_CALCULATION_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: ETA_CALCULATION_ENABLED
+        - name: ETA_UPDATE_THRESHOLD_MINUTES
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: ETA_UPDATE_THRESHOLD_MINUTES
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: REDIS_PORT
+        - name: TIMESCALEDB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: TIMESCALEDB_HOST
+        - name: TIMESCALEDB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: TIMESCALEDB_PORT
+        - name: TIMESCALEDB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: TIMESCALEDB_DATABASE
+        - name: KAFKA_BROKERS
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: KAFKA_BROKERS
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: tracking-service-config
+              key: LOG_LEVEL
+        - name: TIMESCALEDB_USER
+          valueFrom:
+            secretKeyRef:
+              name: tracking-service-secrets
+              key: TIMESCALEDB_USER
+        - name: TIMESCALEDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tracking-service-secrets
+              key: TIMESCALEDB_PASSWORD
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tracking-service-secrets
+              key: REDIS_PASSWORD
+        resources:
+          requests:
+            cpu: "0.5"
+            memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: config-volume
+        configMap:
+          name: tracking-service-config
+      - name: tmp-volume
+        emptyDir: {}
+      nodeSelector:
+        role: application
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - tracking-service
+              topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
