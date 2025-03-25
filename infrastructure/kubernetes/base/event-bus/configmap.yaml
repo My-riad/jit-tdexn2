@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: event-bus-config
+  namespace: default
+  labels:
+    app: event-bus
+    component: event-bus
+    part-of: freight-optimization
+  annotations:
+    description: Configuration for the Event Bus service of the AI-driven Freight Optimization Platform
+data:
+  EVENT_BUS_SERVICE_NAME: event-bus-service
+  EVENT_BUS_PORT: "3001"
+  EVENT_BUS_HOST: "0.0.0.0"
+  LOG_LEVEL: info
+  
+  # Kafka configuration
+  KAFKA_TOPIC_PREFIX: freight-optimization
+  KAFKA_CONSUMER_GROUP_PREFIX: freight-optimization
+  KAFKA_BROKERS: kafka-0.kafka-headless.kafka.svc.cluster.local:9092,kafka-1.kafka-headless.kafka.svc.cluster.local:9092,kafka-2.kafka-headless.kafka.svc.cluster.local:9092
+  KAFKA_CLIENT_ID: event-bus-service
+  KAFKA_CONNECTION_TIMEOUT: "3000"
+  KAFKA_REQUEST_TIMEOUT: "30000"
+  
+  # Retry configuration
+  KAFKA_RETRY_MAX_RETRIES: "5"
+  KAFKA_RETRY_INITIAL_RETRY_TIME: "300"
+  KAFKA_RETRY_MAX_RETRY_TIME: "30000"
+  
+  # Producer configuration
+  KAFKA_PRODUCER_ACKS: "-1"
+  KAFKA_PRODUCER_COMPRESSION_TYPE: gzip
+  
+  # Consumer configuration
+  KAFKA_CONSUMER_AUTO_COMMIT: "true"
+  KAFKA_CONSUMER_AUTO_COMMIT_INTERVAL: "5000"
+  KAFKA_CONSUMER_SESSION_TIMEOUT: "30000"
+  KAFKA_CONSUMER_HEARTBEAT_INTERVAL: "3000"
+  KAFKA_CONSUMER_MAX_BYTES_PER_PARTITION: "1048576"
+  KAFKA_CONSUMER_RETRY_MAX_RETRIES: "10"
+  
+  # Admin configuration
+  KAFKA_ADMIN_ALLOW_AUTO_TOPIC_CREATION: "true"
+  KAFKA_DEFAULT_PARTITIONS: "3"
+  KAFKA_DEFAULT_REPLICATION_FACTOR: "3"
+  
+  # Schema registry configuration
+  SCHEMA_REGISTRY_URL: http://schema-registry.kafka.svc.cluster.local:8081
+  SCHEMA_REGISTRY_ENABLED: "true"
+  SCHEMA_VALIDATION_ENABLED: "true"
+  TOPIC_AUTO_CREATION_ENABLED: "true"
+  
+  # Topic definitions
+  topics.json: |
+    {
+      "DRIVER_EVENTS": "freight-optimization.driver-events",
+      "LOAD_EVENTS": "freight-optimization.load-events",
+      "POSITION_UPDATES": "freight-optimization.position-updates",
+      "LOAD_ASSIGNMENTS": "freight-optimization.load-assignments",
+      "OPTIMIZATION_EVENTS": "freight-optimization.optimization-events",
+      "GAMIFICATION_EVENTS": "freight-optimization.gamification-events",
+      "NOTIFICATION_EVENTS": "freight-optimization.notification-events",
+      "MARKET_EVENTS": "freight-optimization.market-events",
+      "SYSTEM_EVENTS": "freight-optimization.system-events",
+      "INTEGRATION_EVENTS": "freight-optimization.integration-events",
+      "GEOFENCE_EVENTS": "freight-optimization.geofence-events"
+    }
+  
+  # Consumer group definitions
+  consumer-groups.json: |
+    {
+      "DRIVER_EVENTS_CONSUMER": "freight-optimization.driver-events-consumer",
+      "LOAD_EVENTS_CONSUMER": "freight-optimization.load-events-consumer",
+      "POSITION_UPDATES_CONSUMER": "freight-optimization.position-updates-consumer",
+      "LOAD_ASSIGNMENTS_CONSUMER": "freight-optimization.load-assignments-consumer",
+      "OPTIMIZATION_EVENTS_CONSUMER": "freight-optimization.optimization-events-consumer",
+      "GAMIFICATION_EVENTS_CONSUMER": "freight-optimization.gamification-events-consumer",
+      "NOTIFICATION_EVENTS_CONSUMER": "freight-optimization.notification-events-consumer",
+      "MARKET_EVENTS_CONSUMER": "freight-optimization.market-events-consumer",
+      "SYSTEM_EVENTS_CONSUMER": "freight-optimization.system-events-consumer",
+      "INTEGRATION_EVENTS_CONSUMER": "freight-optimization.integration-events-consumer",
+      "GEOFENCE_EVENTS_CONSUMER": "freight-optimization.geofence-events-consumer",
+      "ETA_UPDATES_CONSUMER": "freight-optimization.eta-updates-consumer",
+      "DRIVER_AVAILABILITY_CONSUMER": "freight-optimization.driver-availability-consumer",
+      "DRIVER_HOS_CONSUMER": "freight-optimization.driver-hos-consumer",
+      "ELD_UPDATES_CONSUMER": "freight-optimization.eld-updates-consumer"
+    }
