@@ -215,7 +215,7 @@ jobs:
     
     steps:
       - name: Download APK
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: android-release-apk
           path: apk
@@ -243,7 +243,7 @@ jobs:
     
     steps:
       - name: Download IPA
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ios-release-ipa
           path: ipa
