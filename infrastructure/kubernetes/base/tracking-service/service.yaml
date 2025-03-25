@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tracking-service
+  namespace: default
+  labels:
+    app: tracking-service
+    component: tracking-service
+    part-of: freight-optimization
+  annotations:
+    description: "Service for the Real-time Tracking Service component of the AI-driven Freight Optimization Platform"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3006"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3006
+      protocol: TCP
+    - name: websocket
+      port: 8080
+      targetPort: 3006
+      protocol: TCP
+  selector:
+    app: tracking-service
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 300
