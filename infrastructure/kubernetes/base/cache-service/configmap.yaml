@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cache-service-config
+  namespace: default
+  labels:
+    app: cache-service
+    component: cache-service
+    part-of: freight-optimization
+  annotations:
+    description: "Configuration for the Cache Service of the AI-driven Freight Optimization Platform"
+data:
+  # Base service configuration
+  NODE_ENV: "production"
+  PORT: "3020"
+  LOG_LEVEL: "info"
+  
+  # General cache settings
+  CACHE_DEFAULT_TTL: "1800"  # 30 minutes in seconds
+  CACHE_MAX_SIZE: "1024"     # Maximum size in MB
+  CACHE_CHECK_PERIOD: "60"   # Check for expired items every 60 seconds
+  CACHE_ENABLE_COMPRESSION: "true"
+  CACHE_KEY_PREFIX: "freight"
+  
+  # Redis connection settings
+  REDIS_HOST: "redis-master"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_CLUSTER_ENABLED: "false"
+  REDIS_SENTINEL_ENABLED: "false"
+  REDIS_TLS_ENABLED: "false"
+  
+  # Specific cache TTL policies (in seconds)
+  CACHE_TTL_SHORT_TERM: "300"      # 5 minutes
+  CACHE_TTL_MEDIUM_TERM: "1800"    # 30 minutes
+  CACHE_TTL_LONG_TERM: "86400"     # 24 hours
+  
+  # Data-specific cache TTLs
+  CACHE_TTL_DRIVER_DATA: "900"           # 15 minutes
+  CACHE_TTL_LOAD_DATA: "600"             # 10 minutes
+  CACHE_TTL_POSITION_DATA: "300"         # 5 minutes
+  CACHE_TTL_OPTIMIZATION_RESULT: "1200"  # 20 minutes
+  CACHE_TTL_LEADERBOARD: "3600"          # 1 hour
+  CACHE_TTL_MARKET_DATA: "1800"          # 30 minutes
+  CACHE_TTL_USER_SESSION: "86400"        # 24 hours
+  CACHE_TTL_GEOSPATIAL: "300"            # 5 minutes
+  
+  # Health and metrics configuration
+  HEALTH_CHECK_INTERVAL: "30"
+  HEALTH_CHECK_PATH: "/health"
+  METRICS_PATH: "/metrics"
+  METRICS_ENABLED: "true"
