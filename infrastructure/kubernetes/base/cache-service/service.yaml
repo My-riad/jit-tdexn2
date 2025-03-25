@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cache-service
+  namespace: default
+  labels:
+    app: cache-service
+    component: cache-service
+    part-of: freight-optimization
+  annotations:
+    description: "Service for the Cache Service of the AI-driven Freight Optimization Platform"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3020
+      protocol: TCP
+  selector:
+    app: cache-service
