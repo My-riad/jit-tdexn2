@@ -1,0 +1,10 @@
+rootProject.name = "FreightOptimization"
+
+apply plugin: "com.facebook.react.rootproject"
+
+include ":app"
+
+includeBuild "../node_modules/react-native-gradle-plugin"
+
+// This method comes from the react-native-gradle-plugin
+applyNativeModulesSettingsGradle(settings)
