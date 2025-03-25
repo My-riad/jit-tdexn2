@@ -1,0 +1,664 @@
+# Default configuration values for the AI-driven Freight Optimization Platform
+# This file defines the base configuration for all services, databases, and infrastructure components,
+# which can be overridden by environment-specific values files.
+
+# Global configurations that affect all services
+global:
+  environment: default
+  region: us-east-1
+  domain: freightoptimization.com
+  logLevel: info
+  enableSwagger: false
+  imagePullPolicy: IfNotPresent
+
+# Default image configuration
+image:
+  registry: freight-platform-registry.azurecr.io
+  tag: latest
+  pullPolicy: IfNotPresent
+  pullSecrets:
+    - freight-platform-registry
+
+# Override the name of the chart
+nameOverride: ""
+# Override the full name of the chart
+fullnameOverride: ""
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Services configuration
+apiGateway:
+  replicaCount: 3
+  image:
+    repository: api-gateway
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    corsOrigin: https://freightoptimization.com
+    rateLimitMax: "1000"
+    rateLimitWindowMs: "60000"
+    serviceHealthCheckIntervalMs: "30000"
+    serviceTimeoutMs: "5000"
+    circuitBreakerFailureThreshold: "5"
+    circuitBreakerResetTimeoutMs: "30000"
+    swaggerEnabled: "false"
+
+authService:
+  replicaCount: 2
+  image:
+    repository: auth-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    tokenExpirationSeconds: "3600"
+    refreshTokenExpirationDays: "30"
+    passwordHashRounds: "10"
+    swaggerEnabled: "false"
+
+loadMatchingService:
+  replicaCount: 3
+  image:
+    repository: load-matching-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    reservationTimeoutSeconds: "300"
+    matchScoreThreshold: "50"
+    swaggerEnabled: "false"
+
+driverService:
+  replicaCount: 3
+  image:
+    repository: driver-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 300m
+      memory: 512Mi
+    limits:
+      cpu: 700m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    hosUpdateIntervalMinutes: "15"
+    swaggerEnabled: "false"
+
+loadService:
+  replicaCount: 3
+  image:
+    repository: load-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 300m
+      memory: 512Mi
+    limits:
+      cpu: 700m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    s3Bucket: freight-documents
+    s3Region: us-east-1
+    swaggerEnabled: "false"
+
+trackingService:
+  replicaCount: 5
+  image:
+    repository: tracking-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    positionUpdateIntervalSeconds: "30"
+    historicalPositionRetentionDays: "90"
+    swaggerEnabled: "false"
+
+optimizationEngine:
+  replicaCount: 2
+  image:
+    repository: optimization-engine
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 1
+      memory: 4Gi
+    limits:
+      cpu: 2
+      memory: 8Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    optimizationIntervalMinutes: "5"
+    modelUpdateIntervalHours: "24"
+    modelRegistryPath: s3://freight-models
+    sagemakerEndpoint: optimization-endpoint
+    swaggerEnabled: "false"
+
+gamificationService:
+  replicaCount: 2
+  image:
+    repository: gamification-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    leaderboardUpdateIntervalMinutes: "15"
+    achievementCheckIntervalMinutes: "30"
+    swaggerEnabled: "false"
+
+marketIntelligenceService:
+  replicaCount: 2
+  image:
+    repository: market-intelligence-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    rateUpdateIntervalMinutes: "30"
+    forecastUpdateIntervalHours: "4"
+    swaggerEnabled: "false"
+
+notificationService:
+  replicaCount: 2
+  image:
+    repository: notification-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    emailProvider: sendgrid
+    smsProvider: twilio
+    pushProvider: firebase
+    notificationRetentionDays: "90"
+    swaggerEnabled: "false"
+
+integrationService:
+  replicaCount: 2
+  image:
+    repository: integration-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 300m
+      memory: 512Mi
+    limits:
+      cpu: 700m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    eldSyncIntervalMinutes: "15"
+    tmsSyncIntervalMinutes: "30"
+    swaggerEnabled: "false"
+
+eventBus:
+  replicaCount: 2
+  image:
+    repository: event-bus
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  config:
+    logLevel: info
+    schemaValidationEnabled: "true"
+
+dataService:
+  replicaCount: 2
+  image:
+    repository: data-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 300m
+      memory: 1Gi
+    limits:
+      cpu: 700m
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    reportGenerationConcurrency: "5"
+    dataRetentionDays: "365"
+    swaggerEnabled: "false"
+
+cacheService:
+  replicaCount: 2
+  image:
+    repository: cache-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    logLevel: info
+    defaultTtlSeconds: "3600"
+
+# Database configurations
+postgresql:
+  enabled: true
+  primary:
+    persistence:
+      size: 100Gi
+    resources:
+      requests:
+        cpu: 1
+        memory: 4Gi
+      limits:
+        cpu: 2
+        memory: 8Gi
+  readReplicas:
+    replicaCount: 2
+    persistence:
+      size: 100Gi
+    resources:
+      requests:
+        cpu: 1
+        memory: 4Gi
+      limits:
+        cpu: 2
+        memory: 8Gi
+  auth:
+    username: freight_app
+    database: freight_platform
+
+timescaledb:
+  enabled: true
+  persistence:
+    size: 200Gi
+  resources:
+    requests:
+      cpu: 2
+      memory: 8Gi
+    limits:
+      cpu: 4
+      memory: 16Gi
+  auth:
+    username: freight_app
+    database: freight_timeseries
+
+redis:
+  enabled: true
+  architecture: replication
+  master:
+    persistence:
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1
+        memory: 4Gi
+  replica:
+    replicaCount: 2
+    persistence:
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1
+        memory: 4Gi
+
+mongodb:
+  enabled: true
+  architecture: replicaset
+  replicaCount: 3
+  persistence:
+    size: 50Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 1
+      memory: 4Gi
+  auth:
+    username: freight_app
+    database: freight_documents
+
+elasticsearch:
+  enabled: true
+  master:
+    replicaCount: 3
+    heapSize: 1g
+    persistence:
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1
+        memory: 3Gi
+  data:
+    replicaCount: 3
+    heapSize: 4g
+    persistence:
+      size: 100Gi
+    resources:
+      requests:
+        cpu: 1
+        memory: 8Gi
+      limits:
+        cpu: 2
+        memory: 12Gi
+  coordinating:
+    replicaCount: 2
+    heapSize: 2g
+    resources:
+      requests:
+        cpu: 500m
+        memory: 4Gi
+      limits:
+        cpu: 1
+        memory: 6Gi
+  ingest:
+    enabled: true
+    replicaCount: 2
+    heapSize: 1g
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1
+        memory: 3Gi
+
+kafka:
+  enabled: true
+  replicaCount: 3
+  persistence:
+    size: 100Gi
+  resources:
+    requests:
+      cpu: 1
+      memory: 4Gi
+    limits:
+      cpu: 2
+      memory: 8Gi
+  zookeeper:
+    enabled: true
+    replicaCount: 3
+    persistence:
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 2Gi
+
+# Monitoring configurations
+prometheus:
+  enabled: true
+  server:
+    retention: 15d
+    persistentVolume:
+      size: 50Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1
+        memory: 4Gi
+  alertmanager:
+    enabled: true
+    persistentVolume:
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+
+grafana:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  dashboards:
+    default: true
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+  hosts:
+    - host: freightoptimization.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: api-gateway
+          port: 80
+  tls:
+    - secretName: freight-platform-tls
+      hosts:
+        - freightoptimization.com
+
+# Persistence configuration
+persistence:
+  storageClass: standard
+  accessMode: ReadWriteOnce
+
+# Security configuration
+security:
+  networkPolicies:
+    enabled: true
+  podSecurityPolicies:
+    enabled: true
+  rbac:
+    create: true
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
