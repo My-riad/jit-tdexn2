@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: optimization-engine-config
+  namespace: default
+  labels:
+    app: optimization-engine
+    component: optimization
+    part-of: freight-optimization
+  annotations:
+    description: "Configuration for the Optimization Engine service of the AI-driven Freight Optimization Platform"
+data:
+  # Logging Configuration
+  LOG_LEVEL: "info"
+  
+  # Model Configuration
+  MODEL_REGISTRY_PATH: "/app/models"
+  USE_SAGEMAKER_ENDPOINTS: "false"
+  
+  # Optimization Job Configuration
+  MAX_OPTIMIZATION_JOBS: "10"
+  OPTIMIZATION_TIMEOUT_MS: "300000"
+  DEFAULT_OPTIMIZATION_RADIUS_MILES: "50"
+  
+  # Smart Hub Configuration
+  SMART_HUB_DETECTION_THRESHOLD: "10"
+  
+  # Optimization Algorithm Weights
+  NETWORK_OPTIMIZER_WEIGHT_EMPTY_MILES: "30"
+  NETWORK_OPTIMIZER_WEIGHT_DRIVER_PREFERENCES: "25"
+  NETWORK_OPTIMIZER_WEIGHT_TIME_WINDOWS: "20"
+  NETWORK_OPTIMIZER_WEIGHT_SMART_HUB_UTILIZATION: "15"
+  NETWORK_OPTIMIZER_WEIGHT_FUEL_EFFICIENCY: "10"
+  
+  # Relay Planning Configuration
+  RELAY_PLANNER_MAX_SEGMENTS: "3"
+  RELAY_PLANNER_MIN_SEGMENT_MILES: "100"
+  RELAY_PLANNER_MAX_SEGMENT_MILES: "500"
+  RELAY_MAX_SEGMENT_HOURS: "11"
+  RELAY_MIN_SEGMENT_HOURS: "2"
+  
+  # Demand Prediction Configuration
+  DEMAND_PREDICTOR_FORECAST_HORIZON_HOURS: "72"
+  
+  # Hub Selection Parameters
+  HUB_SELECTOR_MIN_FACILITY_SCORE: "70"
+  HUB_SELECTOR_MIN_CROSSOVER_COUNT: "10"
+  
+  # API Configuration
+  ENABLE_SWAGGER: "true"
+  API_PREFIX: "/api/v1"
+  
+  # Circuit Breaker Configuration
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: "50"
+  CIRCUIT_BREAKER_RESET_TIMEOUT_MS: "30000"
+  
+  # Service Health Configuration
+  SERVICE_HEALTH_CHECK_INTERVAL_MS: "30000"
+  SERVICE_TIMEOUT_MS: "10000"
+  
+  # Job Queue Configuration
+  OPTIMIZATION_JOB_QUEUE_NAME: "optimization-jobs"
+  DEFAULT_JOB_PRIORITY: "10"
+  
+  # Caching Configuration
+  MODEL_CACHE_TTL_MS: "3600000"
+  USE_PREDICTION_CACHE: "true"
+  PREDICTION_CACHE_TTL: "300000"
+  
+  # Algorithm Parameters
+  DEFAULT_CONFIDENCE_THRESHOLD: "0.7"
+  GEOSPATIAL_PRECISION: "5"
