@@ -114,7 +114,7 @@
     "pdfkit-table": "^0.1.99",
     "pg": "^8.10.0",
     "pino": "^8.14.1",
-    "pino-http": "^8.3.3",
+    "pino-http": "^10.4.0",
     "priorityqueuejs": "^2.0.0",
     "process": "^0.11.10",
     "prom-client": "^14.2.0",
