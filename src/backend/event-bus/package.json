@@ -38,7 +38,7 @@
     "ts-jest": "^29.1.1",
     "@types/jest": "^29.5.3",
     "supertest": "^6.3.3",
-    "@types/supertest": "^2.0.12",
+    "@types/supertest": "^6.0.3",
     "rimraf": "^5.0.1"
   },
   "author": "Freight Optimization Team",
