@@ -39,7 +39,7 @@
     "@types/jest": "^29.5.3",
     "supertest": "^6.3.3",
     "@types/supertest": "^2.0.12",
-    "rimraf": "^5.0.1"
+    "rimraf": "^6.0.1"
   },
   "author": "Freight Optimization Team",
   "license": "UNLICENSED",
