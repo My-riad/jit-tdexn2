@@ -58,7 +58,7 @@
     "socket.io-client": "^4.6.1",
     "styled-components": "^5.3.9",
     "styled-normalize": "^8.0.7",
-    "uuid": "^9.0.0",
+    "uuid": "^13.0.0",
     "yup": "^1.1.1"
   },
   "devDependencies": {
