@@ -21,7 +21,7 @@
     "@kafkajs/confluent-schema-registry": "^3.3.0",
     "@mapbox/mapbox-sdk": "^0.15.1",
     "@mapbox/polyline": "^1.2.0",
-    "@sendgrid/client": "^7.7.0",
+    "@sendgrid/client": "^8.1.6",
     "@sendgrid/mail": "^7.7.0",
     "@tensorflow/tfjs-node": "^4.10.0",
     "@turf/turf": "^6.5.0",
