@@ -82,7 +82,7 @@
     "knex-postgis": "^0.14.1",
     "lodash": "^4.17.21",
     "lp-solve": "^0.4.2",
-    "lru-cache": "^10.0.1",
+    "lru-cache": "^11.2.2",
     "mime-types": "^2.1.35",
     "ml-matrix": "^6.10.4",
     "ml-regression": "^5.0.0",
